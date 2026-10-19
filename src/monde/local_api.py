@@ -1231,24 +1231,33 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    if "source_exact" in args:
+        value = args["source_exact"]
+        if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
+                                       "presence-all-csv", "presence-all-map") or
+                "entity" in args or "source" in args or
+                "source_prefix" in args or
+                not 0 < len(value) <= 200 or
+                any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
+            raise ValueError("exact reporter requires a global original Point export")
     if "bbox" in args:
-        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv"):
+        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map"):
             raise ValueError("bbox is only supported for global Point exports")
         from .source_pair_changes import _valid_presence_bbox
         _valid_presence_bbox(_bbox(args["bbox"]))
@@ -1274,10 +1283,10 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-map", "presence-table") or
-            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv"))):
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-map", "presence-table") or
+            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map"))):
         raise ValueError("original presence requires an exact entity export")
-    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv") and
+    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map") and
             ("entity" in args or "source" in args)):
         raise ValueError("global source export cannot have entity/source focus")
     if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-map", "presence-table") and (
@@ -1334,11 +1343,20 @@ def _source_directory_html(document: dict, args: dict[str, str],
                 **args, "source": item["source_id"], "format": "map"}),
                 quote=True) + '">Map this reporter for the entity</a>'
             if "entity_focus" in document else "")
+        global_reporter_map = (
+            ' · <a href="' + escape("/source-pair?" + urlencode({
+                **{k: v for k, v in args.items()
+                   if k not in ("format", "entity", "source", "source_exact",
+                                "source_prefix", "bbox")},
+                "format": "presence-all-map",
+                "source_exact": item["source_id"],
+            }), quote=True) + '">Map this reporter across all entities</a>'
+            if "entity_focus" not in document else "")
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(item["source_id"]) + '</a> · <a href="' +
             escape(partners, quote=True) + '">Find partners</a>' +
-            single_reporter_map + '</th><td>' +
+            single_reporter_map + global_reporter_map + '</th><td>' +
             str(item["earlier_entities"]) + ' / ' + str(item["later_entities"]) +
             '</td><td>' + str(item["newly_reported_entities"]) + ' / ' +
             str(item["no_longer_reported_entities"]) + '</td><td>' +
@@ -1369,6 +1387,8 @@ def _source_directory_html(document: dict, args: dict[str, str],
                         if "entity_focus" not in document else None)
     all_csv_link = ("/source-pair?" + urlencode({**args, "format": "presence-all-csv"})
                     if "entity_focus" not in document else None)
+    all_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-all-map"})
+                    if "entity_focus" not in document else None)
     presence_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-map"})
                          if "entity_focus" in document else None)
     region_gpkg_form = ""
@@ -1397,6 +1417,15 @@ def _source_directory_html(document: dict, args: dict[str, str],
             '<label>West,south,east,north '
             '<input name="bbox" required placeholder="2.2,48.8,2.5,49.0"></label>'
             '<button type="submit">Download area GeoJSON</button>'
+            '</fieldset></form>')
+        region_gpkg_form += (
+            '<form action="/source-pair" method="get"><fieldset>'
+            '<legend>Map original source Points inside a WGS84 region</legend>' +
+            hidden.replace('name="format" value="presence-all-gpkg"',
+                           'name="format" value="presence-all-map"') +
+            '<label>West,south,east,north '
+            '<input name="bbox" required placeholder="2.2,48.8,2.5,49.0"></label>'
+            '<button type="submit">Open area evidence map</button>'
             '</fieldset></form>')
         region_gpkg_form += (
             '<form action="/source-pair" method="get"><fieldset>'
@@ -1603,6 +1632,9 @@ def _source_directory_html(document: dict, args: dict[str, str],
         (' · <a href="' + escape(all_csv_link, quote=True) +
          '">Download all selected original Points CSV</a>'
          if all_csv_link else '') +
+        (' · <a href="' + escape(all_map_link, quote=True) +
+         '">Map all selected original Points</a>'
+         if all_map_link else '') +
         (' · <a href="' + escape("/source-pair?" + urlencode(
             {**args, "format": "map"}), quote=True) +
          '">Map all original reporters of this entity</a> · <a href="' +
@@ -2278,11 +2310,18 @@ def create_server(state: str | Path, port: int = 0, *,
                             self.end_headers()
                             self.wfile.write(body)
                             return
+                        if output_format == "presence-all-map":
+                            from .source_pair_changes import source_directory_all_presence_map
+                            return self._html(source_directory_all_presence_map(
+                                world, document, args.get("presence"),
+                                _bbox(args["bbox"]) if "bbox" in args else None,
+                                args.get("source_exact")))
                         if output_format == "presence-all-geojson":
                             from .source_pair_changes import source_directory_all_presence_geojson
                             return self._reply(200, source_directory_all_presence_geojson(
                                 world, document, args.get("presence"),
-                                _bbox(args["bbox"]) if "bbox" in args else None))
+                                _bbox(args["bbox"]) if "bbox" in args else None,
+                                args.get("source_exact")))
                         if output_format in ("presence-gpkg", "presence-all-gpkg"):
                             from .source_pair_changes import (
                                 source_directory_entity_presence_gpkg,
@@ -2290,10 +2329,12 @@ def create_server(state: str | Path, port: int = 0, *,
                             export = (source_directory_all_presence_gpkg
                                       if output_format == "presence-all-gpkg"
                                       else source_directory_entity_presence_gpkg)
-                            body = (export(world, document, args.get("presence"),
-                                           _bbox(args["bbox"]) if "bbox" in args else None)
-                                    if output_format == "presence-all-gpkg" else
-                                    export(world, document, args.get("presence")))
+                            body = (export(
+                                world, document, args.get("presence"),
+                                _bbox(args["bbox"]) if "bbox" in args else None,
+                                args.get("source_exact"))
+                                if output_format == "presence-all-gpkg" else
+                                export(world, document, args.get("presence")))
                             if len(body) > max_response_bytes:
                                 return self._reply(413, {"error": "response_too_large"})
                             self.send_response(200)
@@ -2359,7 +2400,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 from .source_pair_changes import source_directory_all_presence_csv
                                 body = source_directory_all_presence_csv(
                                     world, document, args.get("presence"),
-                                    _bbox(args["bbox"]) if "bbox" in args else None
+                                    _bbox(args["bbox"]) if "bbox" in args else None,
+                                    args.get("source_exact")
                                 ).encode("utf-8")
                             elif output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv
