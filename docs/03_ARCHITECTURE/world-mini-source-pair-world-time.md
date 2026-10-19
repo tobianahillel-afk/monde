@@ -1117,4 +1117,11 @@ The existing two-reporter matrix now offers `format=presence-all-compare-witness
 
 ### WKT witness CSV for offline GIS / audit (WORK-0142)
 
-The local `/source-pair?format=presence-all-compare-witness-csv` export reuses the exact selected analytical nearest-pair witness GeoJSON. One row per qualifying entity/cutoff includes WKT LINESTRING or seam-split MULTILINESTRING, original source/assertion/evidence identifiers, temporal cutoffs, measured distance and optional threshold margin. `original_observation=false` explicitly forbids interpreting schematic connectors as source observations, roads, physical motion or ground truth. The export is read-only and guards CSV formula prefixes.
+The local `/source-pair?format=presence-all-compare-witness-csv` export reuses the exact selected analytical nearest-pair witness GeoJSON. One row per qualifying entity/cutoff includes WKT LINESTRING or seam-split MULTILINESTRING, original source/assertion/evidence identifiers, temporal cutoffs, measured distance and optional threshold margin. `original_observation=false` explicitly forbids interpreting schematic connectors as source observations, roads, physical motion or ground truth. The export is read-only and guards CSV formula prefixes. On these two
+witness-only formats, the optional strict query parameter
+`witness_period=earlier|later` selects only analytical nearest-pair segments
+for that cutoff; original Point evidence remains fully present and the original
+report count is unchanged. This is intentionally distinct from
+`presence=earlier|later|both`, which classifies *individual original reports*
+by which cutoff(s) contain them. The matrix page provides direct earlier/later
+GIS links. Other formats reject `witness_period`.

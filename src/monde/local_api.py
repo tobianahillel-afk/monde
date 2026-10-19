@@ -1317,6 +1317,10 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
+    def witness_link(period, fmt, label):
+        query = {**shared, "format": fmt, "witness_period": period}
+        return '<a href="' + escape("/source-pair?" + urlencode(query),
+                                     quote=True) + '">' + label + '</a>'
     hidden = {k: v for k, v in shared.items()
               if k not in ("min_gap_km", "min_gap_change_km",
                            "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km",
@@ -1380,6 +1384,10 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                     "Download nearest original reporter witness lines GeoJSON") +
         " · " + link("presence-all-compare-witness-csv",
                      "Download analyst nearest-pair witnesses WKT CSV") +
+        " · " + witness_link("earlier", "presence-all-compare-witness-geojson",
+                             "Earlier analytical witnesses GIS") +
+        " · " + witness_link("later", "presence-all-compare-witness-geojson",
+                             "Later analytical witnesses GIS") +
         '</p><nav aria-label="Original evidence transition filters">' +
         transition_link(None, "All evidence") + " · " +
         transition_link("reporters-changed", "Reporters changed") + " · " +
@@ -1442,13 +1450,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity", "witness_period"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity", "witness_period"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1538,6 +1546,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 not 0 < len(focus) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in focus)):
             raise ValueError("exact entity focus requires two reporter map export")
+    if "witness_period" in args and (
+            args.get("format") not in
+                ("presence-all-compare-witness-geojson",
+                 "presence-all-compare-witness-csv") or
+            args["witness_period"] not in ("earlier", "later")):
+        raise ValueError("invalid analytical witness cutoff")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
@@ -2672,7 +2686,10 @@ def create_server(state: str | Path, port: int = 0, *,
                                     world, document, matrix, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
                                     output_format == "presence-all-compare-map",
-                                    args.get("focus_entity"))
+                                    args.get("focus_entity"),
+                                    **({"witness_period": args["witness_period"]}
+                                       if output_format == "presence-all-compare-witness-geojson"
+                                       and "witness_period" in args else {}))
                                 return (self._html(result) if output_format ==
                                         "presence-all-compare-map" else
                                         self._reply(200, result))
@@ -2683,7 +2700,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 witness = source_directory_global_pair_witness_geojson(
                                     world, document, matrix, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
-                                    False, args.get("focus_entity"))
+                                    False, args.get("focus_entity"),
+                                    witness_period=args.get("witness_period"))
                                 body = source_directory_global_pair_witness_csv(witness).encode("utf-8")
                                 if len(body) > max_response_bytes:
                                     return self._reply(413, {"error": "response_too_large"})

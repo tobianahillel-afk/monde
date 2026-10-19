@@ -4735,59 +4735,85 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn(b"presence-all-compare-witness-csv", table)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
-    def test_witness_exports_respect_selected_original_reporting_period(self):
-        """Original observations and analytical witness links use one period."""
+    def test_witness_period_filters_only_analytical_segments(self):
+        """World/knowledge cutoff selection leaves original reports untouched."""
         for base in (self.knowledge(),
                      {"directory": "1", "axis": "world",
                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
-            # Use the complete reporter matrix: an arbitrary crossing
-            # threshold could filter out all witnesses and make this
-            # temporal-selection regression test vacuous.
             shared = {**base, "compare_a": "survey-a",
                       "compare_b": "survey-b"}
             all_geo = json.loads(self.get({
                 **shared, "format": "presence-all-compare-witness-geojson"})[2])
-            all_witness = [f for f in all_geo["features"]
-                           if f["properties"].get("monde_geometry_role") ==
+            all_points = [f for f in all_geo["features"] if
+                          f["properties"].get("monde_geometry_role") !=
+                          "ANALYTICAL_REPORTER_GAP_WITNESS"]
+            all_witness = [f for f in all_geo["features"] if
+                           f["properties"].get("monde_geometry_role") ==
                            "ANALYTICAL_REPORTER_GAP_WITNESS"]
-            self.assertTrue(all_witness, "fixture must contain reporter pairs")
+            self.assertTrue(all_witness, "fixture needs original reporter pairs")
             for period in ("earlier", "later"):
-                filtered = {**shared, "presence": period}
+                query = {**shared, "witness_period": period}
                 code, _, raw = self.get({
-                    **filtered,
-                    "format": "presence-all-compare-witness-geojson"})
+                    **query, "format": "presence-all-compare-witness-geojson"})
                 self.assertEqual(code, 200)
                 geo = json.loads(raw)
-                original = json.loads(self.get({
-                    **filtered, "format": "presence-all-compare-geojson"})[2])
-                observations = [f for f in geo["features"]
-                                if f["properties"].get("monde_geometry_role") !=
-                                "ANALYTICAL_REPORTER_GAP_WITNESS"]
-                witnesses = [f for f in geo["features"]
-                             if f["properties"].get("monde_geometry_role") ==
-                             "ANALYTICAL_REPORTER_GAP_WITNESS"]
-                self.assertEqual(observations, original["features"])
-                self.assertEqual(witnesses, [
+                original = [f for f in geo["features"] if
+                            f["properties"].get("monde_geometry_role") !=
+                            "ANALYTICAL_REPORTER_GAP_WITNESS"]
+                witness = [f for f in geo["features"] if
+                           f["properties"].get("monde_geometry_role") ==
+                           "ANALYTICAL_REPORTER_GAP_WITNESS"]
+                self.assertEqual(original, all_points)
+                self.assertEqual(witness, [
                     f for f in all_witness if f["properties"]["period"] == period])
                 self.assertEqual(
+                    geo["monde_source_coverage"]["original_report_count"],
+                    all_geo["monde_source_coverage"]["original_report_count"])
+                self.assertEqual(
                     geo["monde_source_coverage"]["analytical_witness_count"],
-                    len(witnesses))
-                self.assertTrue(all(f["properties"]["period"] == period
-                                    for f in witnesses))
-                csv_code, _, csv_raw = self.get({
-                    **filtered, "format": "presence-all-compare-witness-csv"})
-                self.assertEqual(csv_code, 200)
-                rows = list(csv.DictReader(
-                    io.StringIO(csv_raw.decode("utf-8"))))
-                self.assertEqual(len(rows), len(witnesses))
-                self.assertTrue(all(r["period"] == period for r in rows))
-            both = json.loads(self.get({
-                **shared, "presence": "both",
+                    len(witness))
+                self.assertEqual(
+                    geo["monde_source_coverage"]["analytical_witness_period"], period)
+                status, _, raw_csv = self.get({
+                    **query, "format": "presence-all-compare-witness-csv"})
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(raw_csv.decode("utf-8"))))
+                self.assertEqual(len(rows), len(witness))
+                self.assertTrue(all(row["period"] == period for row in rows))
+            # Original assertion presence classification is distinct from a
+            # report cutoff: selecting both-cutoff assertions is not a
+            # synonym for witness_period.
+            both = {**shared, "presence": "both"}
+            original = json.loads(self.get({
+                **both, "format": "presence-all-compare-geojson"})[2])
+            geo = json.loads(self.get({
+                **both, "witness_period": "earlier",
                 "format": "presence-all-compare-witness-geojson"})[2])
-            self.assertEqual(
-                [f for f in both["features"] if
-                 f["properties"].get("monde_geometry_role") ==
-                 "ANALYTICAL_REPORTER_GAP_WITNESS"], all_witness)
+            self.assertEqual([f for f in geo["features"] if
+                              f["properties"].get("monde_geometry_role") !=
+                              "ANALYTICAL_REPORTER_GAP_WITNESS"],
+                             original["features"])
+            table = self.get({
+                **shared, "format": "presence-all-compare-table"})[2]
+            self.assertIn(b"witness_period=earlier", table)
+            self.assertIn(b"witness_period=later", table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_witness_period_rejects_ambiguous_scope_and_invalid_cutoff(self):
+        shared = {**self.knowledge(), "compare_a": "survey-a",
+                  "compare_b": "survey-b"}
+        for bad in (
+                {**shared, "witness_period": "both",
+                 "format": "presence-all-compare-witness-geojson"},
+                {**shared, "witness_period": "earlier",
+                 "format": "presence-all-compare-json"},
+                {**shared, "witness_period": "earlier",
+                 "format": "presence-all-compare-geojson"},
+                {**shared, "witness_period": "",
+                 "format": "presence-all-compare-witness-csv"}):
+            status, _, raw = self.get(bad)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_reporter_witness_csv_dateline_and_formula_guard(self):

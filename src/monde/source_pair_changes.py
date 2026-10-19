@@ -1350,7 +1350,7 @@ def source_directory_global_pair_transition_geojson(
 
 def source_directory_global_pair_witness_geojson(
         world, directory, matrix, presence=None, bbox=None, for_map=False,
-        focus_entity=None):
+        focus_entity=None, witness_period=None):
     """Export original Points plus explicitly analytical nearest-pair segments.
 
     Segments are *not* source observations, verified routes, movement, or
@@ -1359,6 +1359,8 @@ def source_directory_global_pair_witness_geojson(
     """
     if for_map:
         raise ValueError("analytical lines are only available as GIS export")
+    if witness_period not in (None, "earlier", "later"):
+        raise ValueError("invalid analytical witness cutoff")
     output = source_directory_global_pair_transition_geojson(
         world, directory, matrix, presence, bbox, False, focus_entity)
     analytical = []
@@ -1366,9 +1368,10 @@ def source_directory_global_pair_witness_geojson(
         if focus_entity is not None and row["entity"] != focus_entity:
             continue
         for period in ("earlier", "later"):
-            # Keep analytical connectors within the same explicit time-window
-            # selection as original source Points and witness CSV rows.
-            if presence in ("earlier", "later") and period != presence:
+            # "presence" classifies original *assertions* as earlier-only,
+            # later-only or both. The distinct witness_period option selects
+            # an analytical cutoff without changing original observations.
+            if witness_period is not None and period != witness_period:
                 continue
             nearest = row[period]["nearest_original_pair"]
             if nearest is None:
@@ -1412,6 +1415,8 @@ def source_directory_global_pair_witness_geojson(
                 }})
     output["features"].extend(analytical)
     output["monde_source_coverage"]["analytical_witness_count"] = len(analytical)
+    if witness_period is not None:
+        output["monde_source_coverage"]["analytical_witness_period"] = witness_period
     output["monde_source_coverage"]["analytical_witness_semantics"] = (
         "Schematic straight connector between original nearest source reports "
         "at each cutoff; NOT a source-observed geometry, route, movement, "
