@@ -1064,3 +1064,21 @@ The same selection powers JSON, CSV, the local HTML form, source GeoJSON and
 read-only offline maps, on either knowledge-time or world-validity axis.
 A blank browser field preserves previous unfiltered behavior. This measures
 changes in original reports, not physical motion, reliability, or truth.
+
+
+## Original reporter distance threshold crossings (WORK-0141)
+
+Add optional `gap_crossing_km=N` (0–20015 km, up to 3 decimals) to an
+existing local read-only two-reporter `/source-pair` matrix request.
+Its HTML form also exposes the threshold. Two actual nearest original Point
+separations (one per cutoff, both reporters jointly present) are required.
+`CROSSED_ABOVE` means earlier gap was at most N and later exceeded N;
+`CROSSED_BELOW` means earlier gap exceeded N and later is at most N.
+Unknown observations do not count as zero or as a crossing. An unchanged
+request without the parameter retains existing behavior. JSON rows retain
+`reporter_gap_crossing`, corresponding original GeoJSON features retain
+`monde_reporter_gap_crossing`, and metadata records
+`gap_selection.crossing_threshold_km`. Existing CSV, map, rank and trend
+filters apply to the same original evidence selection. This is not a claim
+about movement, accuracy, agreement or physical truth. Saved evidence is
+read-only and remains unchanged.
