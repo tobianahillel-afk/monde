@@ -1,0 +1,43 @@
+id: WORK-0136
+title: "Drill into one original two-reporter entity on the evidence map"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Open both sources' original Point evidence for exactly one entity
+  directly from its bitemporal reporter-matrix row, reusing the existing map.
+scope:
+  in: ["Entity-specific two-reporter map and GeoJSON", "Original source/temporal/area/transition identity", "Persisted read-only HTTP regression"]
+  out: ["Consensus position or inferred physical movement", "Additional service", "World Model mutations"]
+acceptance_criteria:
+  - {id: AC-1, description: "Matrix entity row links to matching original two-source map.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Both map and GeoJSON retain the exact filters and original Point IDs.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Strict invalid-focus rejection and immutable persisted state.", status: IN_PROGRESS}
+depends_on: [WORK-0135]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.source_directory_global_pair_transition_geojson, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Filter existing selected pair transition features by exact entity.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Add direct matrix drilldown link and strict query validation.", depends_on: [T1], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T3, description: "Test persisted HTTP and temporal/source identity.", depends_on: [T2], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0135 / PR #164 and its ancestors."]

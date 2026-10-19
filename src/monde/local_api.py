@@ -1261,6 +1261,12 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         entity = str(item["entity"])
         links = ['<a href="' + drilldown(entity, "presence-table") +
                  '">Entity evidence</a>']
+        # Keep both reporters, transition, WGS84 viewport and temporal axes.
+        pair_query = {**args, "format": "presence-all-compare-map",
+                      "focus_entity": entity}
+        links.append('<a href="' + escape(
+            "/source-pair?" + urlencode(pair_query), quote=True) +
+            '">Compare both reporters on map</a>')
         for side, label, source in (
                 ("source_a", "Source A map", doc["source_a"]),
                 ("source_b", "Source B map", doc["source_b"])):
@@ -1330,13 +1336,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1367,6 +1373,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args["transition"] not in
                 ("reporters-changed", "evidence-changed", "unchanged")):
         raise ValueError("invalid original reporter transition")
+    if "focus_entity" in args:
+        focus = args["focus_entity"]
+        if (not comparing or args.get("format") not in
+                ("presence-all-compare-map", "presence-all-compare-geojson") or
+                not 0 < len(focus) <= 200 or
+                any(ord(ch) < 32 or ord(ch) == 127 for ch in focus)):
+            raise ValueError("exact entity focus requires two reporter map export")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
@@ -2485,7 +2498,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 result = source_directory_global_pair_transition_geojson(
                                     world, document, matrix, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
-                                    output_format == "presence-all-compare-map")
+                                    output_format == "presence-all-compare-map",
+                                    args.get("focus_entity"))
                                 return (self._html(result) if output_format ==
                                         "presence-all-compare-map" else
                                         self._reply(200, result))

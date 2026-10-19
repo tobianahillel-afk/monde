@@ -3612,5 +3612,94 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(self.get({**self.knowledge(), "format": fmt})[0], 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+    def test_reporter_matrix_entity_focus_opens_two_original_sources_on_map(self):
+        """Matrix row -> one-entity map, preserving both reporters and cutoffs."""
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+        status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        matrix = json.loads(raw)
+        self.assertGreater(matrix["total_entities"], 0)
+        entity = matrix["entities"][0]["entity"]
+        status, _, html = self.get({**base, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        anchors = re.findall(r'<a href="([^"]+)">Compare both reporters on map</a>',
+                             html.decode("utf-8"))
+        self.assertEqual(len(anchors), matrix["total_entities"])
+        link = next({k: values[0] for k, values in
+                     parse_qs(urlsplit(unescape(a)).query).items()}
+                    for a in anchors
+                    if parse_qs(urlsplit(unescape(a)).query)["focus_entity"][0] == entity)
+        self.assertEqual(link["format"], "presence-all-compare-map")
+        self.assertEqual((link["compare_a"], link["compare_b"]),
+                         ("survey-a", "survey-b"))
+        self.assertEqual(link["bbox"], base["bbox"])
+        for k in self.knowledge():
+            self.assertEqual(link[k], self.knowledge()[k])
+        status, _, map_html = self.get(link)
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", map_html.lower())
+
+        _, _, total_raw = self.get({
+            **base, "format": "presence-all-compare-geojson"})
+        total = json.loads(total_raw)
+        _, _, focused_raw = self.get({
+            **link, "format": "presence-all-compare-geojson"})
+        focused = json.loads(focused_raw)
+        expected = [f for f in total["features"]
+                    if f["properties"]["entity"] == entity]
+        self.assertEqual(focused["features"], expected)
+        self.assertEqual(focused["monde_source_coverage"]
+                         ["reporter_matrix"]["focus_entity"], entity)
+        self.assertEqual(focused["monde_source_coverage"]
+                         ["reporter_matrix"]["matching_entities"], 1)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_focus_respects_transition_and_world_cutoffs(self):
+        for cutoffs in (self.knowledge(),
+                        {"directory": "1", "axis": "world",
+                         "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            base = {**cutoffs, "compare_a": "survey-a",
+                    "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+            for transition in (None, "reporters-changed", "evidence-changed",
+                               "unchanged"):
+                query = {**base, **({"transition": transition} if transition else {})}
+                _, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+                matrix = json.loads(raw)
+                entity = (matrix["entities"][0]["entity"]
+                          if matrix["entities"] else "nonexistent-report")
+                _, _, raw = self.get({**query, "focus_entity": entity,
+                                       "format": "presence-all-compare-geojson"})
+                focus = json.loads(raw)
+                selected = [r for r in matrix["entities"] if r["entity"] == entity]
+                self.assertEqual(focus["monde_source_coverage"]
+                                 ["reporter_matrix"]["matching_entities"], len(selected))
+                self.assertEqual({f["properties"]["entity"] for f in focus["features"]},
+                                 {entity} if selected else set())
+                self.assertEqual(self.get({**query, "focus_entity": entity,
+                                           "format": "presence-all-compare-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_focus_rejects_ambiguous_or_unsafe_scope(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        for params in (
+                {"focus_entity": ""},
+                {"focus_entity": "site-1\nbad"},
+                {"focus_entity": "site-1", "format": "presence-all-compare-json"},
+                {"focus_entity": "site-1", "format": "presence-all-compare-csv"},
+                {"focus_entity": "site-1", "compare_b": "survey-a"},
+                {"focus_entity": "site-1", "source": "survey-a"},
+                {"focus_entity": "site-1", "entity": "site-1"},
+        ):
+            candidate = {**base, "format": "presence-all-compare-geojson", **params}
+            status, _, raw = self.get(candidate)
+            self.assertEqual(status, 400, candidate)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, raw = self.get({**self.knowledge(), "focus_entity": "site-1",
+                                   "format": "presence-all-compare-geojson"})
+        self.assertEqual(status, 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

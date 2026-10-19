@@ -1066,7 +1066,8 @@ def filter_reporter_matrix_transitions(matrix, transition=None):
 
 
 def source_directory_global_pair_transition_geojson(
-        world, directory, matrix, presence=None, bbox=None, for_map=False):
+        world, directory, matrix, presence=None, bbox=None, for_map=False,
+        focus_entity=None):
     """Map original Point evidence for the selected reporter-matrix entities.
 
     Evidence changes are not proven physical changes or consensus.
@@ -1079,7 +1080,8 @@ def source_directory_global_pair_transition_geojson(
     geojson = exporter(world, directory, presence, bbox,
                        source_compare=sources)
     categories = {row["entity"]: row["reporting_transition"]
-                  for row in matrix["entities"]}
+                  for row in matrix["entities"]
+                  if focus_entity is None or row["entity"] == focus_entity}
     geojson["features"] = [
         {**feature, "properties": {**feature["properties"],
          "monde_reporting_transition": categories[feature["properties"]["entity"]]}}
@@ -1091,8 +1093,11 @@ def source_directory_global_pair_transition_geojson(
     coverage["distinct_entities"] = len(categories)
     coverage["reporter_matrix"] = {
         "source_a": sources[0], "source_b": sources[1],
-        "matching_entities": matrix["total_entities"],
+        "matching_entities": len(categories),
         "all_entities": matrix["total_entities_unfiltered"],
+        **({"focus_entity": focus_entity,
+            "all_matching_entities": matrix["total_entities"]}
+           if focus_entity is not None else {}),
         "transition_counts": matrix["transition_counts"],
         **({"transition_filter": matrix["transition_filter"]}
            if "transition_filter" in matrix else {})}

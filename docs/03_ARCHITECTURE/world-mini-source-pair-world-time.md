@@ -967,3 +967,16 @@ never infer a physical movement, a consensus location or verified ground truth.
 The GeoJSON includes filtered/unfiltered matrix counts, and an empty match yields
 an empty evidence map. No new endpoint, dependency, external service or mutation
 of the persisted WorldMini snapshot.
+
+
+### Focus a selected reporter-matrix entity on the evidence map
+
+In the two-reporter matrix, **Compare both reporters on map** now opens the
+existing read-only source map for one exact selected entity. This preserves
+both original reporters, the world/knowledge cutoffs, presence, geographic
+bbox (including wrapped antimeridian) and optional reporting-transition
+category. The same `focus_entity` selector is supported for the existing
+`presence-all-compare-geojson` export. It is rejected on other outputs or
+without two distinct reporters. Missing or category-excluded entities yield
+an empty selection, not an inferred consensus position. The persisted WorldMini
+and the original assertion/evidence/Point identities remain unchanged.
