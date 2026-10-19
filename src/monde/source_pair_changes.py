@@ -1007,7 +1007,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
                                         transition=None, gap_trend=None,
                                         min_gap_km=None, gap_order=None,
-                                        gap_window=None):
+                                        gap_window=None, min_gap_change_km=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1086,8 +1086,13 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
     if gap_window not in (None, "either", "both") or (
             gap_window is not None and min_gap_km is None):
         raise ValueError("invalid reporter gap window")
-    if min_gap_km is None and gap_order is None:
+    if min_gap_km is None and gap_order is None and min_gap_change_km is None:
         return matrix
+    if min_gap_change_km is not None and (
+            type(min_gap_change_km) not in (int, float) or
+            not isfinite(min_gap_change_km) or
+            not 0 <= min_gap_change_km <= 20015):
+        raise ValueError("invalid minimum reporter gap change")
     if min_gap_km is not None and (
             isinstance(min_gap_km, bool) or
             not isinstance(min_gap_km, (int, float)) or
@@ -1103,8 +1108,14 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             return min(values) if len(values) == 2 else None
         return max(values) if values else None
     before = len(matrix["entities"])
-    rows = [r for r in matrix["entities"] if min_gap_km is None or
-            (gap(r) is not None and gap(r) >= min_gap_km)]
+    rows = [
+        r for r in matrix["entities"]
+        if (min_gap_km is None or
+            (gap(r) is not None and gap(r) >= min_gap_km))
+        and (min_gap_change_km is None or
+             (r["separation_change_km"] is not None and
+              abs(r["separation_change_km"]["nearest_km"]) >= min_gap_change_km))
+    ]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
     elif gap_order == "largest-change":
@@ -1126,6 +1137,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
     return {**matrix, "entities": rows, "total_entities": len(rows),
             "per_period": counts, "gap_selection": {
                 "minimum_nearest_km": min_gap_km,
+                "minimum_abs_change_km": min_gap_change_km,
                 "order": gap_order or "entity",
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,
