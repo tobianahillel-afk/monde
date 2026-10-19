@@ -1160,7 +1160,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             "per_period": counts, "gap_selection": {
                 "minimum_nearest_km": min_gap_km,
                 "minimum_abs_change_km": min_gap_change_km,
-                "crossing_threshold_km": gap_crossing_km,
+                **({"crossing_threshold_km": gap_crossing_km}
+                   if gap_crossing_km is not None else {}),
                 "order": gap_order or "entity",
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,
