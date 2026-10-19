@@ -990,3 +990,7 @@ source and coordinate identities. When one reporter is missing, separation is
 JSON `null` and CSV blank. `separation_change_km` measures later-minus-earlier
 report-to-report gaps only when two sources report at both cutoffs. These
 values do not represent ground truth, source accuracy, consensus or motion.
+
+## Original two-reporter gap direction filters (WORK-0136)
+
+The same read-only `/source-pair?directory=1` reporter matrix (JSON, CSV, HTML, offline map and GeoJSON) now accepts `gap_trend=widening|narrowing|steady|unknown`. The selection operates on the **nearest source-to-source Point report separation** computed at both bitemporal cutoffs, using the existing rounded kilometer measurements. `unknown` means either cutoff lacks jointly reported Points; it is never silently interpreted as zero kilometers. The matrix HTML exposes corresponding links and counts; scoped map/GeoJSON retains exact original reporter, assertion, evidence and WGS84 identities. It is a change in separation of *reports*, not validated movement, ground truth or improved/worsened source reliability. No new route, dependency, network service or persistent-state write.
