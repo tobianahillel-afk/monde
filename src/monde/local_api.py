@@ -1234,6 +1234,12 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def assertions(data):
         return ", ".join(escape(str(x)) for x in data["assertion_ids"]) or "—"
 
+    def separation(period):
+        value = period["separation_km"]
+        return ("—" if value is None else
+                str(value["nearest_km"]) + " to " +
+                str(value["farthest_km"]) + " km")
+
     # Existing read-only drill-downs keep both temporal cutoffs, but not the
     # global bbox; entity evidence may legitimately exist outside the viewport.
     retained = {key: args[key] for key in (
@@ -1257,6 +1263,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 assertions(p["source_a"]) + "</td>",
                 "<td>" + str(p["source_b"]["count"]) + " · " +
                 assertions(p["source_b"]) + "</td>",
+                "<td>" + separation(p) + "</td>",
             ))
         entity = str(item["entity"])
         links = ['<a href="' + drilldown(entity, "presence-table") +
@@ -1308,10 +1315,11 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '</nav><table><caption>Selected original Point reports, not agreement'
         '</caption><thead><tr><th rowspan="2">Entity</th>'
         '<th rowspan="2">Evidence transition</th>'
-        '<th colspan="3">Earlier</th><th colspan="3">Later</th></tr>'
+        '<th colspan="4">Earlier</th><th colspan="4">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
-        '<th>Source B assertions</th><th>Status</th>'
-        '<th>Source A assertions</th><th>Source B assertions</th></tr>'
+        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
+        '<th>Status</th><th>Source A assertions</th>'
+        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th></tr>'
         '</thead><tbody>' + "".join(body) + '</tbody></table>'
         '<p>Matching entities: ' + str(doc["total_entities"]) +
         ' of ' + str(doc["total_entities_unfiltered"]) +

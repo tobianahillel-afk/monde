@@ -1008,7 +1008,14 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                 }
             row[period] = {"status": status,
                            "source_a": original_identity(left),
-                           "source_b": original_identity(right)}
+                           "source_b": original_identity(right),
+                           "separation_km": _measure(left, right)}
+        before = row["earlier"]["separation_km"]
+        after = row["later"]["separation_km"]
+        row["separation_change_km"] = (
+            {kind: round(after[kind] - before[kind], 3)
+             for kind in ("nearest_km", "farthest_km")}
+            if before is not None and after is not None else None)
         rows.append(row)
     matrix = {
         "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
@@ -1020,8 +1027,9 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         "per_period": totals, "entities": rows,
         "interpretation": (
             "Original Point reporting presence within the selected area, "
-            "cutoffs and filters only. Both reported does not prove agreement, "
-            "truth, consensus, accuracy or motion. Missing reports are UNKNOWN."),
+            "cutoffs and filters only. Original reporter Point separation "
+            "does not prove agreement, accuracy, consensus, truth or motion. "
+            "Missing reports are UNKNOWN."),
     }
 
 
@@ -1140,6 +1148,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
+                     "nearest_reporter_separation_km", "farthest_reporter_separation_km",
                      "world_at", "knowledge_at"))
     for item in matrix["entities"]:
         for period in ("earlier", "later"):
@@ -1151,6 +1160,9 @@ def source_directory_global_pair_matrix_csv(matrix):
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
+                             *(("" if row["separation_km"] is None
+                                 else row["separation_km"][kind])
+                               for kind in ("nearest_km", "farthest_km")),
                              cutoff["world_at"], cutoff["knowledge_at"]))
     return output.getvalue()
 

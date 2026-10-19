@@ -3701,5 +3701,55 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_reporter_matrix_original_point_separation_matches_http_csv_and_html(self):
+        """Quantify original source-to-source Point gaps; never infer consensus."""
+        from monde.source_pair_changes import _distance
+        for times in (self.knowledge(),
+                      {"directory": "1", "axis": "world",
+                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            params = {**times, "compare_a": "survey-a", "compare_b": "survey-b"}
+            status, _, raw = self.get({**params, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            status, _, raw = self.get({**params, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            csv_rows = {(r["entity"], r["period"]): r for r in
+                        csv.DictReader(io.StringIO(raw.decode("utf-8")))}
+            self.assertEqual(len(csv_rows), 2 * matrix["total_entities"])
+            joint = 0
+            for entity in matrix["entities"]:
+                for period in ("earlier", "later"):
+                    selected = entity[period]
+                    a_points = selected["source_a"]["coordinates"]
+                    b_points = selected["source_b"]["coordinates"]
+                    measured = selected["separation_km"]
+                    flat = csv_rows[(entity["entity"], period)]
+                    if not a_points or not b_points:
+                        self.assertIsNone(measured)
+                        self.assertEqual(flat["nearest_reporter_separation_km"], "")
+                        self.assertEqual(flat["farthest_reporter_separation_km"], "")
+                    else:
+                        joint += 1
+                        gaps = [_distance(a, b) for a in a_points for b in b_points]
+                        self.assertEqual(measured, {
+                            "nearest_km": round(min(gaps), 3),
+                            "farthest_km": round(max(gaps), 3)})
+                        self.assertEqual(float(flat["nearest_reporter_separation_km"]),
+                                         measured["nearest_km"])
+                        self.assertEqual(float(flat["farthest_reporter_separation_km"]),
+                                         measured["farthest_km"])
+                before, after = (entity[period]["separation_km"]
+                                 for period in ("earlier", "later"))
+                expected = ({kind: round(after[kind] - before[kind], 3)
+                             for kind in ("nearest_km", "farthest_km")}
+                            if before is not None and after is not None else None)
+                self.assertEqual(entity["separation_change_km"], expected)
+            self.assertGreater(joint, 0)
+            status, _, html = self.get({**params, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"Reporter separation (min-max km)", html)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

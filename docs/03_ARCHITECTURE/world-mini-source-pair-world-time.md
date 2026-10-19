@@ -980,3 +980,13 @@ category. The same `focus_entity` selector is supported for the existing
 without two distinct reporters. Missing or category-excluded entities yield
 an empty selection, not an inferred consensus position. The persisted WorldMini
 and the original assertion/evidence/Point identities remain unchanged.
+
+### Two original reporters: measured Point separation (WORK-0136)
+
+The reporter matrix now exposes nearest/farthest geodesic kilometres **between
+original source Points** at each earlier/later bitemporal cutoff in JSON, CSV
+and HTML. It reuses `_measure` and keeps all original assertion, evidence,
+source and coordinate identities. When one reporter is missing, separation is
+JSON `null` and CSV blank. `separation_change_km` measures later-minus-earlier
+report-to-report gaps only when two sources report at both cutoffs. These
+values do not represent ground truth, source accuracy, consensus or motion.

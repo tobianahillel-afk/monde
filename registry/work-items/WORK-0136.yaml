@@ -11,12 +11,13 @@ purpose: |
   Open both sources' original Point evidence for exactly one entity
   directly from its bitemporal reporter-matrix row, reusing the existing map.
 scope:
-  in: ["Entity-specific two-reporter map and GeoJSON", "Original source/temporal/area/transition identity", "Persisted read-only HTTP regression"]
+  in: ["Entity-specific two-reporter map and GeoJSON", "Original source/temporal/area/transition identity", "Per-cutoff measured original reporter separation", "Persisted read-only HTTP regression"]
   out: ["Consensus position or inferred physical movement", "Additional service", "World Model mutations"]
 acceptance_criteria:
   - {id: AC-1, description: "Matrix entity row links to matching original two-source map.", status: IN_PROGRESS}
   - {id: AC-2, description: "Both map and GeoJSON retain the exact filters and original Point IDs.", status: IN_PROGRESS}
   - {id: AC-3, description: "Strict invalid-focus rejection and immutable persisted state.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Quantify Point separation in matrix JSON, CSV and HTML without inferring source accuracy or motion.", status: IN_PROGRESS}
 depends_on: [WORK-0135]
 requirements: []
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
