@@ -848,11 +848,6 @@ def source_directory_entity_presence_gpkg(world, directory, presence=None):
     The data is a temporary, local SQLite file, not a write to the WorldMini
     snapshot. Each Point is a distinct *source report*, never consensus truth.
     """
-    from pathlib import Path
-    import sqlite3
-    import struct
-    import tempfile
-
     geojson = source_directory_entity_presence_geojson(world, directory, presence)
     return _presence_geojson_to_gpkg(geojson)
 
@@ -927,6 +922,11 @@ def source_directory_all_presence_gpkg(world, directory, presence=None):
 
 def _presence_geojson_to_gpkg(geojson):
     """Shared original-Point GeoPackage writer for entity and global export."""
+    from pathlib import Path
+    import sqlite3
+    import struct
+    import tempfile
+
     features = geojson["features"]
     coordinates = [f["geometry"]["coordinates"] for f in features]
     extents = ((min(p[0] for p in coordinates), min(p[1] for p in coordinates),
