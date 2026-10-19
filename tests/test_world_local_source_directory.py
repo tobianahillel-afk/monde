@@ -4241,5 +4241,82 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(current["gap_selection"]["minimum_abs_change_km"], 0)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_original_reporter_crossing_threshold_both_axes_and_exports(self):
+        """Threshold crossings derive only from original comparable source Points."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            query = {**base, "compare_a": "survey-a", "compare_b": "survey-b"}
+            unfiltered = json.loads(self.get({
+                **query, "format": "presence-all-compare-json"})[2])
+            comparable = [r for r in unfiltered["entities"]
+                          if r["earlier"]["separation_km"] is not None
+                          and r["later"]["separation_km"] is not None]
+            thresholds = ["0", "1", "20015"] + [
+                str(round(r["earlier"]["separation_km"]["nearest_km"], 3))
+                for r in comparable]
+            for threshold in thresholds:
+                number = float(threshold)
+                options = {**query, "gap_crossing_km": threshold,
+                           "gap_order": "largest-change"}
+                status, _, payload = self.get({
+                    **options, "format": "presence-all-compare-json"})
+                self.assertEqual(status, 200)
+                filtered = json.loads(payload)
+                expected = {}
+                for r in comparable:
+                    before = r["earlier"]["separation_km"]["nearest_km"]
+                    after = r["later"]["separation_km"]["nearest_km"]
+                    if before <= number < after:
+                        expected[r["entity"]] = "CROSSED_ABOVE"
+                    elif after <= number < before:
+                        expected[r["entity"]] = "CROSSED_BELOW"
+                self.assertEqual({
+                    r["entity"]: r["reporter_gap_crossing"]
+                    for r in filtered["entities"]}, expected)
+                self.assertEqual(filtered["gap_selection"]["crossing_threshold_km"],
+                                 number)
+                csv_output = self.get({
+                    **options, "format": "presence-all-compare-csv"})[2]
+                rows = list(csv.DictReader(io.StringIO(csv_output.decode("utf-8"))))
+                self.assertEqual({r["entity"] for r in rows}, set(expected))
+                status, _, raw = self.get({
+                    **options, "format": "presence-all-compare-geojson"})
+                self.assertEqual(status, 200)
+                geo = json.loads(raw)
+                self.assertEqual({f["properties"]["entity"] for f in geo["features"]},
+                                 set(expected))
+                for f in geo["features"]:
+                    self.assertEqual(f["properties"]["monde_reporter_gap_crossing"],
+                                     expected[f["properties"]["entity"]])
+                status, _, html = self.get({
+                    **options, "format": "presence-all-compare-table"})
+                self.assertEqual(status, 200)
+                self.assertIn(b'name="gap_crossing_km"', html)
+                self.assertEqual(self.get({
+                    **options, "format": "presence-all-compare-map"})[0], 200)
+            _, _, raw = self.get({**query, "gap_crossing_km": "",
+                                  "format": "presence-all-compare-json"})
+            self.assertEqual(json.loads(raw), unfiltered)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_crossing_rejects_unsafe_or_unrelated_queries(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b"}
+        for invalid in ("-1", "NaN", "inf", "1e2", "1.0001", "20016",
+                        " 1", "01", "1,0", "false", "+0"):
+            status, _, payload = self.get({
+                **query, "format": "presence-all-compare-json",
+                "gap_crossing_km": invalid})
+            self.assertEqual(status, 400, invalid)
+            self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        for fmt in ("presence-all-map", "presence-all-geojson", "json"):
+            status, _, payload = self.get({
+                **query, "format": fmt, "gap_crossing_km": "1"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
