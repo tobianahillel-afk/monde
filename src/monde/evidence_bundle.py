@@ -105,13 +105,17 @@ def verify_bundle(data: bytes) -> dict:
         raise BundleVerificationError("invalid or corrupted ZIP") from exc
 
 
-def compare_bundles(before: bytes, after: bytes) -> dict:
+def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None) -> dict:
     """Compare two verified original-reporter exports, without asserting truth.
 
     Repeated source reports are counted separately. Different selections,
     bitemporal cutoffs or exported analytical witnesses are not interpreted as
     real-world events, movement or independent source authentication.
     """
+    if entity is not None and (not isinstance(entity, str) or not entity
+                               or len(entity) > 512 or
+                               any(ord(ch) < 32 for ch in entity)):
+        raise BundleVerificationError("invalid entity selector")
     left = verify_bundle(before)
     right = verify_bundle(after)
     for key in ("schema", "source_a", "source_b", "axis"):
@@ -139,10 +143,14 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
             original = Counter(json.dumps(
                 feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
                 for feature in points["features"])
-            return manifest, by_id, original
+            selected = Counter(json.dumps(
+                feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                for feature in points["features"]
+                if entity is not None and feature["properties"].get("entity") == entity)
+            return manifest, by_id, original, selected
 
-    left_manifest, left_rows, left_points = contents(before)
-    right_manifest, right_rows, right_points = contents(after)
+    left_manifest, left_rows, left_points, left_selected = contents(before)
+    right_manifest, right_rows, right_points, right_selected = contents(after)
     added = sorted(right_rows.keys() - left_rows.keys())
     removed = sorted(left_rows.keys() - right_rows.keys())
     common = left_rows.keys() & right_rows.keys()
@@ -151,7 +159,7 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
         name for name in FILES
         if left_manifest["files"][name]["sha256"]
         != right_manifest["files"][name]["sha256"])
-    return {
+    result = {
         "valid": True,
         "comparison": "MONDE_ORIGINAL_REPORTER_BUNDLE_COMPARISON_V1",
         "source_a": left["source_a"], "source_b": left["source_b"],
@@ -170,6 +178,31 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
         "authenticity": "NOT_ATTESTED",
         "interpretation": "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE",
     }
+    if entity is not None:
+        if (entity not in left_rows and entity not in right_rows
+                and not left_selected and not right_selected):
+            raise BundleVerificationError("entity absent from both verified exports")
+
+        def changed_features(delta):
+            return [{"feature": json.loads(raw), "count": count}
+                    for raw, count in sorted(delta.items())]
+
+        result["entity_inspection"] = {
+            "entity": entity,
+            "before_matrix_row": (json.loads(left_rows[entity])
+                                  if entity in left_rows else None),
+            "after_matrix_row": (json.loads(right_rows[entity])
+                                 if entity in right_rows else None),
+            "original_points_before_count": sum(left_selected.values()),
+            "original_points_after_count": sum(right_selected.values()),
+            "original_points_unchanged_count": sum(
+                (left_selected & right_selected).values()),
+            "original_points_added": changed_features(
+                right_selected - left_selected),
+            "original_points_removed": changed_features(
+                left_selected - right_selected),
+        }
+    return result
 
 
 def main(argv=None):
@@ -177,7 +210,11 @@ def main(argv=None):
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
     parser.add_argument("--compare", type=Path, metavar="OTHER_ZIP",
                         help="Compare verified export with another original-reporter ZIP")
+    parser.add_argument("--entity", metavar="ENTITY_ID",
+                        help="Inspect one entity's original reports in both verified exports")
     args = parser.parse_args(argv)
+    if args.entity is not None and args.compare is None:
+        parser.error("--entity requires --compare")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -187,7 +224,8 @@ def main(argv=None):
         else:
             if args.compare.stat().st_size > MAX_ARCHIVE:
                 raise BundleVerificationError("comparison archive exceeds safe size")
-            result = compare_bundles(original, args.compare.read_bytes())
+            result = compare_bundles(original, args.compare.read_bytes(),
+                                     entity=args.entity)
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1
