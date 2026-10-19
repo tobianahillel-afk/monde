@@ -7,7 +7,9 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
-from urllib.parse import urlencode
+from html import unescape
+import re
+from urllib.parse import urlencode, urlsplit, parse_qs
 
 from monde.local_api import create_server
 from monde.source_pair_changes import source_directory
@@ -3378,6 +3380,54 @@ class SourceDirectoryTests(unittest.TestCase):
             source_directory_global_pair_matrix_csv({"schema": "UNEXPECTED"})
 
 
+
+    def test_two_reporter_matrix_drills_into_existing_source_maps(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+        status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        rows = json.loads(raw)["entities"]
+        self.assertTrue(rows)
+        status, _, page = self.get({**query, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"outside any global bbox filter", page)
+        self.assertNotIn(b'value="presence-all-compare-table",', page)
+        anchors = re.findall(r'<a href="([^"]+)">([^<]+)</a>', page.decode("utf-8"))
+        links = [(label, {key: values[0] for key, values in
+                 parse_qs(urlsplit(unescape(href)).query).items()})
+                 for href, label in anchors]
+        first = rows[0]
+        entity = first["entity"]
+        dossier = next(q for label, q in links if label == "Entity evidence"
+                       and q.get("entity") == entity)
+        self.assertEqual(dossier["format"], "presence-table")
+        for key in self.knowledge():
+            self.assertEqual(dossier[key], self.knowledge()[key])
+        self.assertNotIn("bbox", dossier)
+        self.assertNotIn("compare_a", dossier)
+        self.assertNotIn("compare_b", dossier)
+        status, _, original = self.get(dossier)
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", original.lower())
+        for side, label, source in (
+                ("source_a", "Source A map", "survey-a"),
+                ("source_b", "Source B map", "survey-b")):
+            present = any(first[period][side]["count"]
+                          for period in ("earlier", "later"))
+            found = [q for text, q in links
+                     if text == label and q.get("entity") == entity]
+            self.assertEqual(bool(found), bool(present))
+            if found:
+                selected = found[0]
+                self.assertEqual((selected["format"], selected["source"]),
+                                 ("presence-map", source))
+                self.assertNotIn("bbox", selected)
+                for key in self.knowledge():
+                    self.assertEqual(selected[key], self.knowledge()[key])
+                status, _, map_html = self.get(selected)
+                self.assertEqual(status, 200)
+                self.assertIn(b"<!doctype html>", map_html.lower())
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 if __name__ == "__main__":
     unittest.main()

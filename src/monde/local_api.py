@@ -1234,6 +1234,18 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def assertions(data):
         return ", ".join(escape(str(x)) for x in data["assertion_ids"]) or "—"
 
+    # Existing read-only drill-downs keep both temporal cutoffs, but not the
+    # global bbox; entity evidence may legitimately exist outside the viewport.
+    retained = {key: args[key] for key in (
+        "directory", "axis", "at", "from_known_at", "to_known_at",
+        "from_at", "to_at", "known_at", "presence") if key in args}
+
+    def drilldown(entity, fmt, source=None):
+        query = {**retained, "entity": entity, "format": fmt}
+        if source is not None:
+            query["source"] = source
+        return escape("/source-pair?" + urlencode(query), quote=True)
+
     body = []
     for item in doc["entities"]:
         cells = []
@@ -1246,8 +1258,18 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 "<td>" + str(p["source_b"]["count"]) + " · " +
                 assertions(p["source_b"]) + "</td>",
             ))
-        body.append('<tr><th scope="row">' + escape(str(item["entity"])) +
-                    "</th>" + "".join(cells) + "</tr>")
+        entity = str(item["entity"])
+        links = ['<a href="' + drilldown(entity, "presence-table") +
+                 '">Entity evidence</a>']
+        for side, label, source in (
+                ("source_a", "Source A map", doc["source_a"]),
+                ("source_b", "Source B map", doc["source_b"])):
+            if any(item[period][side]["count"] for period in ("earlier", "later")):
+                links.append('<a href="' + drilldown(
+                    entity, "presence-map", source) + '">' + label + '</a>')
+        body.append('<tr><th scope="row">' + escape(entity) + ' · ' +
+                    ' · '.join(links) + "</th>" +
+                    "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
@@ -1268,7 +1290,10 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<th>Source B assertions</th><th>Status</th>'
         '<th>Source A assertions</th><th>Source B assertions</th></tr>'
         '</thead><tbody>' + "".join(body) + '</tbody></table>'
-        '<p>Total entities: ' + str(doc["total_entities"]) + '</p></html>'
+        '<p>Total entities: ' + str(doc["total_entities"]) + '</p>' +
+        '<p>Entity and source links open full original Point evidence at the '
+        'same world/knowledge cutoffs, outside any global bbox filter. '
+        'No consensus location or physical movement is inferred.</p></html>'
     )
 
 
@@ -1484,7 +1509,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
             '<option value="presence-all-geojson">Original Point GeoJSON</option>'
             '<option value="presence-all-csv">Original Point CSV</option>'
             '<option value="presence-all-gpkg">Offline GeoPackage</option>'
-            '<option value="presence-all-compare-table", "presence-all-compare-csv">Original reporting table</option>'
+            '<option value="presence-all-compare-table">Original reporting table</option>'
             '<option value="presence-all-compare-json">Original reporting JSON</option>'
             '<option value="presence-all-compare-csv">Original reporting matrix CSV</option>'
             '</select></label> '
