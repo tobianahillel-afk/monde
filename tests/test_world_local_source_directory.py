@@ -3818,5 +3818,73 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(status, 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_original_reporter_gap_priority_http_csv_map_and_snapshot(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)
+        query = {**base, "min_gap_km": "0", "gap_order": "largest"}
+        status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        picked = json.loads(raw)
+        def max_gap(row):
+            values = [row[period]["separation_km"]["nearest_km"]
+                      for period in ("earlier", "later")
+                      if row[period]["separation_km"] is not None]
+            return max(values) if values else None
+        expected = [r for r in original["entities"] if max_gap(r) is not None]
+        expected.sort(key=lambda r: (-max_gap(r), r["entity"]))
+        self.assertEqual([r["entity"] for r in picked["entities"]],
+                         [r["entity"] for r in expected])
+        self.assertEqual(picked["gap_selection"]["minimum_nearest_km"], 0.0)
+        self.assertEqual(picked["gap_selection"]["order"], "largest")
+        self.assertEqual(picked["total_original_reports"],
+                         original["total_original_reports"])
+        self.assertEqual(picked["total_entities"], len(expected))
+        status, _, raw = self.get({**query, "format": "presence-all-compare-csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual([r["entity"] for r in rows[::2]],
+                         [r["entity"] for r in expected])
+        status, _, html = self.get({**query, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Prioritize original reporter Point separation", html)
+        self.assertIn(b'name="min_gap_km"', html)
+        self.assertIn(b'name="gap_order"', html)
+        status, _, raw = self.get({**query, "format": "presence-all-compare-geojson"})
+        self.assertEqual(status, 200)
+        self.assertEqual({f["properties"]["entity"] for f in json.loads(raw)["features"]},
+                         {row["entity"] for row in expected})
+        self.assertEqual(self.get({**query, "format": "presence-all-compare-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_gap_priority_rejects_invalid_scope_both_axes(self):
+        periods = (self.knowledge(),
+                   {"directory": "1", "axis": "world",
+                    "from_at": EARLY, "to_at": LATE, "known_at": KNOWN})
+        for time in periods:
+            q = {**time, "compare_a": "survey-a", "compare_b": "survey-b"}
+            for fmt in ("presence-all-compare-json", "presence-all-compare-geojson"):
+                status, _, raw = self.get({**q, "format": fmt, "min_gap_km": "20015"})
+                self.assertEqual(status, 200)
+                output = json.loads(raw)
+                self.assertEqual(output["features"] if fmt.endswith("geojson")
+                                 else output["entities"], [])
+            for invalid in ("", "-1", "nan", "inf", "1e6", "20.1234", "20016", "01"):
+                status, _, raw = self.get({**q, "format": "presence-all-compare-json",
+                                           "min_gap_km": invalid})
+                self.assertEqual(status, 400, invalid)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+            for changes in ({"gap_order": "random"},
+                            {"format": "presence-all-map", "min_gap_km": "2"},
+                            {"format": "presence-all-geojson", "gap_order": "largest"}):
+                status, _, raw = self.get({**q, "format": "presence-all-compare-json",
+                                           **changes})
+                self.assertEqual(status, 400, changes)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
