@@ -11,11 +11,11 @@ purpose: |
   Provide an evidence-grounded global reporter matrix comparing two sources
   by entity and cutoff without inferring agreement or verified location.
 scope:
-  in: ["Read-only matrix HTML/JSON", "Original Point IDs and positions", "Existing spatial and temporal filters"]
+  in: ["Read-only matrix HTML/JSON/CSV", "Original Point IDs and positions", "Existing spatial and temporal filters"]
   out: ["Verified world state", "New external dependencies", "Persisted model mutation"]
 acceptance_criteria:
   - {id: AC-1, description: "Project exactly the globally selected original Point features.", status: IN_PROGRESS}
-  - {id: AC-2, description: "Provide accessible HTML and machine-readable JSON by two temporal cutoffs.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Provide accessible HTML and machine-readable JSON/CSV by two temporal cutoffs.", status: IN_PROGRESS}
   - {id: AC-3, description: "Validate strict scope, source provenance and unchanged saved state over HTTP.", status: IN_PROGRESS}
 depends_on: [WORK-0132]
 requirements: []
