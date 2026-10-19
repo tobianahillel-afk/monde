@@ -3280,5 +3280,104 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
+    def test_two_reporter_matrix_csv_matches_json_and_filtered_evidence(self):
+        for presence in (None, "earlier", "later", "both"):
+            query = {**self.knowledge(), "compare_a": "survey-a",
+                     "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+            if presence:
+                query["presence"] = presence
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            status, headers, raw = self.get({
+                **query, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+            self.assertIn("monde-original-reporter-matrix.csv",
+                          headers["Content-Disposition"])
+            self.assertEqual(headers["Cache-Control"], "no-store")
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual(len(rows), 2 * matrix["total_entities"])
+            for row in rows:
+                item = next(x for x in matrix["entities"] if
+                            x["entity"] == row["entity"])
+                period = row["period"]
+                self.assertEqual(row["reporting_status"], item[period]["status"])
+                self.assertEqual((row["source_a"], row["source_b"]),
+                                 (matrix["source_a"], matrix["source_b"]))
+                for reporter in ("source_a", "source_b"):
+                    original = item[period][reporter]
+                    self.assertEqual(int(row[reporter + "_count"]),
+                                     original["count"])
+                    for field in ("assertion_ids", "evidence_ids", "coordinates"):
+                        self.assertEqual(
+                            json.loads(row[reporter + "_" + field + "_json"]),
+                            original[field])
+                cutoff = matrix["cutoffs"][period]
+                self.assertEqual((row["world_at"], row["knowledge_at"]),
+                                 (cutoff["world_at"], cutoff["knowledge_at"]))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_csv_navigation_and_rejections(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        status, _, page = self.get({
+            **base, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Download reporter matrix CSV", page)
+        self.assertIn(b"presence-all-compare-csv", page)
+        status, _, index = self.get(self.knowledge())
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporting matrix CSV", index)
+        for extra in ({"compare_b": "survey-a"}, {"compare_a": ""},
+                      {"source_exact": "survey-a"}, {"entity": "site-1"},
+                      {"source_prefix": "sur"}):
+            status, _, raw = self.get({
+                **base, **extra, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.get({
+            **self.knowledge(), "format": "presence-all-compare-csv"})[0], 400)
+        status, _, empty = self.get({
+            **self.knowledge(), "compare_a": "missing-a",
+            "compare_b": "missing-b", "format": "presence-all-compare-csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(list(csv.DictReader(
+            io.StringIO(empty.decode("utf-8")))), [])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_csv_escapes_spreadsheet_formulas(self):
+        from monde.source_pair_changes import source_directory_global_pair_matrix_csv
+        original = lambda count, ids: {
+            "count": count, "assertion_ids": ids, "evidence_ids": ["@e"] if ids else [],
+            "coordinates": [[1.0, 2.0]] if ids else []}
+        matrix = {
+            "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
+            "source_a": "=reporter", "source_b": "@reporter",
+            "cutoffs": {"earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                        "later": {"world_at": AT, "knowledge_at": AFTER}},
+            "entities": [{
+                "entity": "+entity",
+                "earlier": {"status": "ONLY_SOURCE_A",
+                            "source_a": original(1, ["=assertion"]),
+                            "source_b": original(0, [])},
+                "later": {"status": "ONLY_SOURCE_B",
+                          "source_a": original(0, []),
+                          "source_b": original(1, ["-assertion"])}}]}
+        rows = list(csv.DictReader(io.StringIO(
+            source_directory_global_pair_matrix_csv(matrix))))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["entity"], "'+entity")
+        self.assertEqual(rows[0]["source_a"], "'=reporter")
+        self.assertEqual(rows[0]["source_b"], "'@reporter")
+        self.assertEqual(json.loads(rows[0]["source_a_assertion_ids_json"]),
+                         ["=assertion"])
+        self.assertEqual(json.loads(rows[1]["source_b_assertion_ids_json"]),
+                         ["-assertion"])
+        with self.assertRaises(ValueError):
+            source_directory_global_pair_matrix_csv({"schema": "UNEXPECTED"})
+
+
+
 if __name__ == "__main__":
     unittest.main()
