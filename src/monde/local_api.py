@@ -1306,7 +1306,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
     hidden = {k: v for k, v in shared.items()
-              if k not in ("min_gap_km", "gap_order")}
+              if k not in ("min_gap_km", "gap_order", "gap_window")}
     priority = (
         '<form method="get" action="/source-pair"><fieldset>'
         '<legend>Prioritize original reporter Point separation</legend>' +
@@ -1317,7 +1317,13 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<label>Minimum nearest gap (km; either cutoff)'
         '<input type="number" name="min_gap_km" min="0" max="20015" step="0.001"'
         ' value="' + escape(shared.get("min_gap_km", "0"), quote=True) +
-        '"></label><label>Ranking <select name="gap_order">'
+        '"></label><label>At <select name="gap_window">'
+        '<option value="either"' +
+        (' selected' if shared.get("gap_window", "either") == "either" else '') +
+        '>Either cutoff</option><option value="both"' +
+        (' selected' if shared.get("gap_window") == "both" else '') +
+        '>Both cutoffs (persistent)</option></select></label>'
+        '<label>Ranking <select name="gap_order">'
         '<option value="largest">Largest original-report gap first</option>'
         '</select></label><button type="submit">Prioritize evidence</button>'
         '</fieldset></form>')
@@ -1380,13 +1386,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1438,6 +1444,11 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args.get("format") not in formats or
             args["gap_order"] != "largest"):
         raise ValueError("invalid original reporter gap order")
+    if "gap_window" in args and (
+            args.get("format") not in formats or
+            "min_gap_km" not in args or
+            args["gap_window"] not in ("either", "both")):
+        raise ValueError("invalid original reporter gap window")
     if "focus_entity" in args:
         focus = args["focus_entity"]
         if (not comparing or args.get("format") not in
@@ -2556,7 +2567,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 compare_sources, args.get("transition"),
                                 args.get("gap_trend"),
                                 float(args["min_gap_km"]) if "min_gap_km" in args else None,
-                                args.get("gap_order"))
+                                args.get("gap_order"),
+                                args.get("gap_window"))
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",
