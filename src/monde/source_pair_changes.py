@@ -842,6 +842,213 @@ def source_directory_entity_presence_gpx(world, directory, presence=None):
 
 
 
+def source_directory_entity_presence_gpkg(world, directory, presence=None):
+    """Offline OGC GeoPackage 1.3 with original WGS84 Points and full provenance.
+
+    The data is a temporary, local SQLite file, not a write to the WorldMini
+    snapshot. Each Point is a distinct *source report*, never consensus truth.
+    """
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    return _presence_geojson_to_gpkg(geojson)
+
+
+def _valid_presence_bbox(bbox):
+    """Inclusive original WGS84 viewport; west>east crosses the dateline."""
+    import math
+    if (not isinstance(bbox, (list, tuple)) or len(bbox) != 4 or
+            any(isinstance(v, bool) or not isinstance(v, (float, int)) or
+                not math.isfinite(v) for v in bbox)):
+        raise ValueError("invalid original Point export bbox")
+    west, south, east, north = bbox
+    if (not -180 <= west <= 180 or not -180 <= east <= 180 or
+            not -90 <= south < north <= 90 or west == east or
+            (west == 180 and east == -180)):
+        raise ValueError("invalid original Point export bbox")
+    return west, south, east, north
+
+
+def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
+    """One offline GIS layer of original source Points across *all* entities.
+
+    Export only the original sources selected by the existing source directory
+    filters. The same assertion at both cutoffs yields ONE geometry carrying
+    explicit earlier/later visibility, never an inferred trajectory or truth.
+    """
+    if (directory.get("schema") != "MONDE_SOURCE_COVERAGE_DIRECTORY_V1" or
+            "entity_focus" in directory):
+        raise ValueError("global source directory required")
+    if presence not in (None, "earlier", "later", "both"):
+        raise ValueError("invalid original report presence filter")
+    # Only original observations within this requested viewport qualify.
+    if bbox is not None:
+        west, south, east, north = _valid_presence_bbox(bbox)
+    sources = {row["source_id"] for row in directory["sources"]}
+    by_identity = {}
+    for period in ("earlier", "later"):
+        cutoff = directory["cutoffs"][period]
+        for original in world.export_geojson(
+                cutoff["world_at"], cutoff["knowledge_at"])["features"]:
+            props = original["properties"]
+            if props["source_id"] not in sources:
+                continue
+            lon, lat = original["geometry"]["coordinates"]
+            if bbox is not None and not (
+                    south <= lat <= north and
+                    (west <= lon <= east if west < east else
+                     lon >= west or lon <= east)):
+                continue
+            identity = (props["entity"], props["source_id"], original["id"],
+                        props["evidence_id"], lon, lat)
+            entry = by_identity.setdefault(
+                identity, {"original": original, "periods": set()})
+            entry["periods"].add(period)
+    features = []
+    for identity, entry in sorted(by_identity.items(),
+                                  key=lambda pair: tuple(map(str, pair[0]))):
+        before = "earlier" in entry["periods"]
+        after = "later" in entry["periods"]
+        classification = ("both" if before and after else
+                          "earlier" if before else "later")
+        if presence is not None and classification != presence:
+            continue
+        original = entry["original"]
+        props = dict(original["properties"])
+        props.update(
+            monde_original_assertion_id=original["id"],
+            earlier_visible=before, later_visible=after,
+            monde_visibility_transition={
+                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                "both": "BOTH_CUTOFFS"}[classification])
+        features.append({
+            "type": "Feature",
+            "id": json.dumps(identity, ensure_ascii=False, separators=(",", ":")),
+            "geometry": original["geometry"], "properties": props,
+        })
+    coverage = {
+        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1",
+        "axis": directory["axis"], "cutoffs": directory["cutoffs"],
+        "selected_sources": len(sources),
+        "original_report_count": len(features),
+        "distinct_entities": len({f["properties"]["entity"] for f in features}),
+        **({key: directory[key] for key in ("source_prefix", "reporting_filter")
+            if key in directory}),
+        **({"presence_filter": presence} if presence is not None else {}),
+        **({"bbox_filter": list(bbox)} if bbox is not None else {}),
+        "interpretation": (
+            "Original source Point presence across two cutoffs; not "
+            "inferred truth, movement or a consensus position"),
+    }
+    return _presence_geojson_to_gpkg({
+        "type": "FeatureCollection", "features": features,
+        "monde_source_coverage": coverage,
+    })
+
+
+def _presence_geojson_to_gpkg(geojson):
+    """Shared original-Point GeoPackage writer for entity and global export."""
+    from pathlib import Path
+    import sqlite3
+    import struct
+    import tempfile
+
+    features = geojson["features"]
+    coordinates = [f["geometry"]["coordinates"] for f in features]
+    extents = ((min(p[0] for p in coordinates), min(p[1] for p in coordinates),
+                max(p[0] for p in coordinates), max(p[1] for p in coordinates))
+               if coordinates else (None, None, None, None))
+    with tempfile.TemporaryDirectory(prefix="monde-presence-gpkg-") as folder:
+        target = Path(folder) / "original-presence.gpkg"
+        with sqlite3.connect(target) as db:
+            db.execute("PRAGMA application_id=0x47504B47")
+            db.execute("PRAGMA user_version=10300")
+            db.executescript("""
+                CREATE TABLE gpkg_spatial_ref_sys (
+                  srs_name TEXT NOT NULL, srs_id INTEGER NOT NULL PRIMARY KEY,
+                  organization TEXT NOT NULL, organization_coordsys_id INTEGER NOT NULL,
+                  definition TEXT NOT NULL, description TEXT
+                );
+                CREATE TABLE gpkg_contents (
+                  table_name TEXT NOT NULL PRIMARY KEY, data_type TEXT NOT NULL,
+                  identifier TEXT UNIQUE, description TEXT DEFAULT '',
+                  last_change DATETIME NOT NULL,
+                  min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE,
+                  srs_id INTEGER
+                );
+                CREATE TABLE gpkg_geometry_columns (
+                  table_name TEXT NOT NULL, column_name TEXT NOT NULL,
+                  geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL,
+                  z TINYINT NOT NULL, m TINYINT NOT NULL,
+                  PRIMARY KEY (table_name, column_name)
+                );
+                CREATE TABLE original_points (
+                  fid INTEGER PRIMARY KEY AUTOINCREMENT,
+                  feature_id TEXT NOT NULL UNIQUE, entity TEXT NOT NULL,
+                  source_id TEXT NOT NULL, assertion_id TEXT NOT NULL,
+                  evidence_id TEXT NOT NULL,
+                  earlier_visible INTEGER NOT NULL, later_visible INTEGER NOT NULL,
+                  visibility_transition TEXT NOT NULL,
+                  original_properties_json TEXT NOT NULL, geom BLOB NOT NULL
+                );
+                CREATE TABLE monde_coverage (
+                  id INTEGER PRIMARY KEY CHECK(id=1),
+                  coverage_json TEXT NOT NULL
+                );
+                CREATE TABLE gpkg_extensions (
+                  table_name TEXT, column_name TEXT,
+                  extension_name TEXT NOT NULL, definition TEXT NOT NULL,
+                  scope TEXT NOT NULL,
+                  UNIQUE (table_name, column_name, extension_name)
+                );
+                CREATE VIRTUAL TABLE rtree_original_points_geom
+                  USING rtree(id, minx, maxx, miny, maxy);
+            """)
+            # This is an immutable, read-only export. The RTree indexes the
+            # original geometry so offline GIS clients can query viewports
+            # without scanning the complete feature layer.
+            db.execute("INSERT INTO gpkg_extensions VALUES (?,?,?,?,?)",
+                       ("original_points", "geom", "gpkg_rtree_index",
+                        "http://www.geopackage.org/spec/#extension_rtree",
+                        "read-write"))
+            db.executemany("INSERT INTO gpkg_spatial_ref_sys VALUES (?,?,?,?,?,?)", [
+                ("Undefined Cartesian", -1, "NONE", -1, "undefined", "undefined"),
+                ("Undefined geographic", 0, "NONE", 0, "undefined", "undefined"),
+                ("WGS 84", 4326, "EPSG", 4326,
+                 'GEOGCS["WGS 84",DATUM["WGS_1984",'
+                 'SPHEROID["WGS 84",6378137,298.257223563]],'
+                 'PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433],'
+                 'AUTHORITY["EPSG","4326"]]', "WGS84 source coordinates")
+            ])
+            db.execute("INSERT INTO gpkg_contents VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       ("original_points", "features", "MONDE original Point presence",
+                        "Original source observations, not physical movement or truth",
+                        "1980-01-01T00:00:00.000Z", *extents, 4326))
+            db.execute("INSERT INTO gpkg_geometry_columns VALUES (?,?,?,?,?,?)",
+                       ("original_points", "geom", "POINT", 4326, 0, 0))
+            db.execute("INSERT INTO monde_coverage VALUES (?,?)", (1, json.dumps(
+                geojson["monde_source_coverage"], ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"), allow_nan=False)))
+            for feature in features:
+                p = feature["properties"]
+                lon, lat = feature["geometry"]["coordinates"]
+                # GP header: little-endian, no envelope, EPSG:4326; then WKB Point.
+                geom = struct.pack("<2sBBI", b"GP", 0, 1, 4326) + struct.pack(
+                    "<BIdd", 1, 1, lon, lat)
+                inserted = db.execute("INSERT INTO original_points "
+                           "(feature_id,entity,source_id,assertion_id,evidence_id,"
+                           "earlier_visible,later_visible,visibility_transition,"
+                           "original_properties_json,geom) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                           (feature["id"], p["entity"], p["source_id"],
+                            p["monde_original_assertion_id"], p["evidence_id"],
+                            int(p["earlier_visible"]), int(p["later_visible"]),
+                            p["monde_visibility_transition"], json.dumps(
+                                p, ensure_ascii=False, sort_keys=True,
+                                separators=(",", ":"), allow_nan=False), geom))
+                db.execute("INSERT INTO rtree_original_points_geom VALUES (?,?,?,?,?)",
+                           (inserted.lastrowid, lon, lon, lat, lat))
+            db.commit()
+        return target.read_bytes()
+
+
 def source_directory_entity_presence_kmz(world, directory, presence=None):
     """Portable offline KMZ containing original KML and full source GeoJSON.
 

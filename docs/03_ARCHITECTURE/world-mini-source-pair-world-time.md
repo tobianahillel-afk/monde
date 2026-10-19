@@ -776,3 +776,62 @@ Exact entity, optional original reporter and presence filters apply equally
 to GPX, GeoJSON, KML and KMZ. Unknown query parameters are rejected, no
 saved-model bytes are modified, and no motion, consensus or verified ground
 truth is inferred. No additional runtime dependency or hosted service.
+
+
+## Original Point presence GeoPackage (WORK-0129)
+
+The existing read-only source-pair entity directory can export `format=presence-gpkg`
+for a single entity, optionally scoped by exact source and temporal presence.
+The download is an OGC GeoPackage 1.3 SQLite `.gpkg` with a WGS84
+`original_points` Point feature table, one feature per original
+source/assertion/evidence/coordinate identity (not once per cutoff).
+Each row contains source and temporal visibility columns plus
+`original_properties_json`; a `monde_coverage` metadata table preserves
+the complete bitemporal coverage cutoffs and provenance selection. No route,
+trajectory, consensus location, remote data or WorldMini mutation is inferred.
+The file is generated temporarily and returned only through the existing
+loopback-only GET endpoint; `max_response_bytes` is enforced.
+
+
+### Global original Point GeoPackage (WORK-0129 extension)
+
+For a source-directory query without `entity`, select **Download all selected
+original Points GeoPackage** or request `format=presence-all-gpkg`.
+The existing source-directory `source_prefix` and `change` filters select
+reporters, and optional `presence=earlier|later|both` selects the visibility
+of each **original assertion + evidence + coordinates + entity** across the two
+explicit cutoffs. The file contains one `original_points` WGS84 layer, full
+original source properties in `original_properties_json`, and a
+`monde_coverage` provenance record identifying axis, cutoffs, source filters,
+selected reporter count and entity count. It is suitable for offline GIS
+analysis of reports from multiple entities **without implying consensus,
+verified movement or physical events**. Individual entity exports remain
+unchanged. No new endpoint, service, dependency or persisted-state mutation.
+
+## Spatially indexed offline GeoPackage — WORK-0129
+
+Both individual-entity and global original Point presence exports now include a
+standard `gpkg_rtree_index` of `original_points.geom` using the original
+WGS84 coordinates. GIS readers can restrict a viewport through the
+`rtree_original_points_geom` table instead of scanning all original
+observations. The index contains one entry per existing feature identity and
+remains empty for a no-evidence export. It does not alter evidence provenance,
+time visibility, coordinate values or saved MONDE state.
+
+The downloaded GeoPackage is an **immutable evidence snapshot**; modifying its
+geometries in third-party tools requires rebuilding the spatial index. MONDE
+does not offer an edit or write-back path.
+
+## WGS84 area selection for the original-evidence GeoPackage (WORK-0129)
+
+The existing read-only global `/source-pair` GeoPackage export accepts
+`format=presence-all-gpkg&bbox=west,south,east,north`. The source-directory
+page offers a native form preserving reporter filters and both time cutoffs.
+Boundaries are inclusive, and `west > east` selects an antimeridian-crossing
+region (example `179,-1,-179,1`). Invalid, non-finite and degenerate boxes
+are rejected; other directory formats do not silently ignore `bbox`.
+
+Each exported geometry is an original source-reported Point inside the region,
+not an inferred position or consensus. The GeoPackage's `monde_coverage`
+records `bbox_filter`; the RTree covers exactly the selected rows. An empty
+region exports a valid empty GeoPackage. No persisted WorldMini data is changed.
