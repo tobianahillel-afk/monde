@@ -1165,7 +1165,9 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
               crossing_margin(r) >= min_crossing_margin_km))
     ]
     if gap_crossing_km is not None:
-        rows = [{**r, "reporter_gap_crossing": crossing(r)} for r in rows]
+        rows = [{**r, "reporter_gap_crossing": crossing(r),
+                 "reporter_gap_crossing_margin_km": crossing_margin(r)}
+                for r in rows]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
     elif gap_order == "largest-margin":
@@ -1305,6 +1307,9 @@ def source_directory_global_pair_transition_geojson(
             **({"monde_reporter_gap_crossing":
                 categories[props["entity"]]["reporter_gap_crossing"]}
                if "reporter_gap_crossing" in categories[props["entity"]] else {}),
+            **({"monde_reporter_gap_crossing_margin_km":
+                categories[props["entity"]]["reporter_gap_crossing_margin_km"]}
+               if "reporter_gap_crossing_margin_km" in categories[props["entity"]] else {}),
             **({"monde_nearest_original_pair_periods": marked}
                if marked else {})}}
 
@@ -1366,7 +1371,8 @@ def source_directory_global_pair_matrix_csv(matrix):
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("entity", "period", "reporting_status",
                      "reporting_transition", "reporter_gap_trend",
-                     "reporter_gap_crossing", "source_a", "source_b", "source_a_count", "source_b_count",
+                     "reporter_gap_crossing", "reporter_gap_crossing_margin_km",
+                     "source_a", "source_b", "source_a_count", "source_b_count",
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
@@ -1382,6 +1388,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                              item.get("reporting_transition", ""),
                              item.get("reporter_gap_trend", "UNKNOWN"),
                              item.get("reporter_gap_crossing", ""),
+                             item.get("reporter_gap_crossing_margin_km", ""),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),

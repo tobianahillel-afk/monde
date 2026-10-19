@@ -1294,8 +1294,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                     ' · '.join(links) + "</th><td>" +
                     escape(item["reporting_transition"]) + "</td><td>" +
                     escape(item["reporter_gap_trend"]) + "</td><td>" +
-                    escape(item.get("reporter_gap_crossing", "—")) + "</td>" +
-                    "".join(cells) + "</tr>")
+                    escape(item.get("reporter_gap_crossing", "—")) + "</td><td>" +
+                    str(item.get("reporter_gap_crossing_margin_km", "—")) +
+                    "</td>" + "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def transition_link(value, text):
         retained = {key: val for key, val in shared.items()
@@ -1391,6 +1392,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<th rowspan="2">Evidence transition</th>'
         '<th rowspan="2">Gap trend</th>'
         '<th rowspan="2">Crossing direction</th>'
+        '<th rowspan="2">Crossing margin (km)</th>'
         '<th colspan="5">Earlier</th><th colspan="5">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
         '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'

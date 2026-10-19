@@ -1105,3 +1105,6 @@ No inferred movement, location consensus, mutation, service or dependency.
 ### Ranking original reporter gap crossings by later threshold margin (WORK-0142)
 
 After selecting `gap_crossing_km=N`, `gap_order=largest-margin` sorts qualifying entities by the distance that their later original nearest Point-report gap extends beyond the crossed side of threshold N, descending; equal margins use entity ID. This differs from `largest-change`, which sorts the total earlier/later gap variation. Without a crossing threshold the new ordering is rejected. Native HTML, canonical JSON, CSV, source-attributed GeoJSON and local map retain the exact same evidence selection. Neither metric asserts physical movement or ground truth.
+
+
+For threshold-crossing selections, each comparable entity now exposes `reporter_gap_crossing_margin_km` in JSON, CSV and the native evidence table. Filtered original GeoJSON carries the same quantity as `monde_reporter_gap_crossing_margin_km`. This nonnegative distance measures how far the *later* nearest original reporter gap lies beyond the crossed side of the chosen threshold—not total earlier/later change, verified truth or physical movement. Without a crossing threshold this quantity is omitted; both world- and knowledge-time axes use identical semantics.

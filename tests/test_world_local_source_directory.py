@@ -4499,22 +4499,52 @@ class SourceDirectoryTests(unittest.TestCase):
                         else 1 - new)
             self.assertEqual(rows, sorted(rows, key=lambda r: (-margin(r), r["entity"])))
             self.assertEqual(doc["gap_selection"]["order"], "largest-margin")
+            self.assertTrue(rows)
+            for row in rows:
+                self.assertAlmostEqual(
+                    row["reporter_gap_crossing_margin_km"], margin(row),
+                    places=9)
+                self.assertGreaterEqual(row["reporter_gap_crossing_margin_km"], 0)
             csv_doc = self.get({**q, "format": "presence-all-compare-csv"})[2]
             csv_rows = list(csv.DictReader(io.StringIO(csv_doc.decode("utf-8"))))
             self.assertEqual([r["entity"] for r in csv_rows],
                              [r["entity"] for r in rows])
+            for item in csv_rows:
+                original = next(row for row in rows
+                                if row["entity"] == item["entity"])
+                self.assertAlmostEqual(
+                    float(item["reporter_gap_crossing_margin_km"]),
+                    original["reporter_gap_crossing_margin_km"], places=9)
             features = json.loads(self.get({**q,
                 "format": "presence-all-compare-geojson"})[2])["features"]
             self.assertEqual({f["properties"]["entity"] for f in features},
                              {r["entity"] for r in rows})
+            for feature in features:
+                original = next(row for row in rows
+                                if row["entity"] == feature["properties"]["entity"])
+                self.assertAlmostEqual(
+                    feature["properties"]["monde_reporter_gap_crossing_margin_km"],
+                    original["reporter_gap_crossing_margin_km"], places=9)
             self.assertEqual(self.get({**q,
                 "format": "presence-all-compare-map"})[0], 200)
             table = self.get({**q, "format": "presence-all-compare-table"})[2]
             self.assertIn(b'value="largest-margin"', table)
             self.assertIn(b'Largest threshold crossing margin first', table)
+            self.assertIn(b'Crossing margin (km)', table)
+            for item in rows:
+                self.assertIn(
+                    str(item["reporter_gap_crossing_margin_km"]).encode("ascii"),
+                    table)
             limited = json.loads(self.get({**q, "min_crossing_margin_km": "1",
                 "format": "presence-all-compare-json"})[2])
             self.assertEqual(limited["entities"], [r for r in rows if margin(r) >= 1])
+            no_threshold = self.get({
+                **{key: val for key, val in q.items()
+                   if key not in ("gap_crossing_km", "gap_order")},
+                "format": "presence-all-compare-json"})[2]
+            self.assertTrue(all(
+                "reporter_gap_crossing_margin_km" not in r
+                for r in json.loads(no_threshold)["entities"]))
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_crossing_margin_ranking_rejects_invalid_scope(self):
