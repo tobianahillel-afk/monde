@@ -2679,5 +2679,100 @@ class SourceDirectoryTests(unittest.TestCase):
                              lat + 0.001, lat - 0.001)).fetchall()
                         self.assertIn((fid,), hits)
 
+
+    def test_global_geopackage_bbox_matches_original_source_geometry(self):
+        """Download only originally reported Points; preserve SQLite provenance."""
+        import sqlite3
+        import struct
+        from tempfile import NamedTemporaryFile
+        params = self.knowledge()
+        page = self.get({**params, "format": "table"})[2]
+        self.assertIn(b"Download area GeoPackage", page)
+        self.assertIn(b'name="bbox"', page)
+        self.assertIn(b'name="format" value="presence-all-gpkg"', page)
+        status, _, whole = self.get({**params, "format": "presence-all-gpkg"})
+        self.assertEqual(status, 200)
+        with NamedTemporaryFile(suffix=".gpkg") as f:
+            Path(f.name).write_bytes(whole)
+            with sqlite3.connect(f.name) as db:
+                original = [(row[0], *struct.unpack("<dd", row[1][13:29]))
+                            for row in db.execute(
+                                "SELECT feature_id,geom FROM original_points")]
+        self.assertTrue(original)
+        lon, lat = original[0][1:]
+        bounds = [max(-180.0, lon-.005), max(-90.0, lat-.005),
+                  min(180.0, lon+.005), min(90.0, lat+.005)]
+        expected = {fid for fid, x, y in original if
+                    bounds[0] <= x <= bounds[2] and bounds[1] <= y <= bounds[3]}
+        status, headers, blob = self.get({**params,
+            "format": "presence-all-gpkg", "bbox": ",".join(map(str, bounds))})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/geopackage+sqlite3")
+        with NamedTemporaryFile(suffix=".gpkg") as f:
+            Path(f.name).write_bytes(blob)
+            with sqlite3.connect(f.name) as db:
+                self.assertEqual({row[0] for row in db.execute(
+                    "SELECT feature_id FROM original_points")}, expected)
+                coverage = json.loads(db.execute(
+                    "SELECT coverage_json FROM monde_coverage").fetchone()[0])
+                self.assertEqual(coverage["bbox_filter"], bounds)
+                self.assertEqual(coverage["original_report_count"], len(expected))
+                self.assertEqual(db.execute(
+                    "SELECT count(*) FROM rtree_original_points_geom").fetchone()[0],
+                    len(expected))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_geopackage_bbox_antimeridian_empty_and_invalid(self):
+        """Wrapped query covers both longitude shores; malformed regions fail closed."""
+        import sqlite3
+        import struct
+        from tempfile import NamedTemporaryFile
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "dateline-region.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        other = create_server(saved)
+        thread = threading.Thread(target=other.serve_forever, daemon=True)
+        thread.start()
+        try:
+            params = {"directory": "1", "axis": "world", "from_at": EARLY,
+                      "to_at": LATE, "known_at": KNOWN,
+                      "format": "presence-all-gpkg", "bbox": "179,-1,-179,1"}
+            status, _, blob = self.get(params, server=other)
+            self.assertEqual(status, 200)
+            with NamedTemporaryFile(suffix=".gpkg") as f:
+                Path(f.name).write_bytes(blob)
+                with sqlite3.connect(f.name) as db:
+                    positions = [struct.unpack("<dd", row[0][13:29])
+                                 for row in db.execute("SELECT geom FROM original_points")]
+                    self.assertTrue(any(x < -179 for x, y in positions))
+                    self.assertTrue(any(x > 179 for x, y in positions))
+                    self.assertTrue(all(x >= 179 or x <= -179 for x, y in positions))
+                    self.assertEqual(db.execute(
+                        "SELECT count(*) FROM rtree_original_points_geom").fetchone()[0],
+                        len(positions))
+            status, _, blob = self.get({**params, "bbox": "40,40,41,41"}, server=other)
+            self.assertEqual(status, 200)
+            with NamedTemporaryFile(suffix=".gpkg") as f:
+                Path(f.name).write_bytes(blob)
+                with sqlite3.connect(f.name) as db:
+                    self.assertEqual(db.execute(
+                        "SELECT count(*) FROM original_points").fetchone()[0], 0)
+                    self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            for bad in ("0,0,0,1", "1,5,2,4", "nan,0,1,1",
+                        "-181,0,1,1", "180,0,-180,1", "0,0,1,91",
+                        "0,0,1", "a,b,c,d"):
+                self.assertEqual(self.get({**params, "bbox": bad},
+                                          server=other)[0], 400)
+            self.assertEqual(self.get({**params, "format": "json"},
+                                      server=other)[0], 400)
+            self.assertEqual(self.get({**params, "entity": "site-1"},
+                                      server=other)[0], 400)
+        finally:
+            other.shutdown()
+            thread.join(timeout=5)
+            other.server_close()
+        self.assertEqual(saved.read_bytes(), initial)
+
 if __name__ == "__main__":
     unittest.main()

@@ -821,3 +821,17 @@ time visibility, coordinate values or saved MONDE state.
 The downloaded GeoPackage is an **immutable evidence snapshot**; modifying its
 geometries in third-party tools requires rebuilding the spatial index. MONDE
 does not offer an edit or write-back path.
+
+## WGS84 area selection for the original-evidence GeoPackage (WORK-0129)
+
+The existing read-only global `/source-pair` GeoPackage export accepts
+`format=presence-all-gpkg&bbox=west,south,east,north`. The source-directory
+page offers a native form preserving reporter filters and both time cutoffs.
+Boundaries are inclusive, and `west > east` selects an antimeridian-crossing
+region (example `179,-1,-179,1`). Invalid, non-finite and degenerate boxes
+are rejected; other directory formats do not silently ignore `bbox`.
+
+Each exported geometry is an original source-reported Point inside the region,
+not an inferred position or consensus. The GeoPackage's `monde_coverage`
+records `bbox_filter`; the RTree covers exactly the selected rows. An empty
+region exports a valid empty GeoPackage. No persisted WorldMini data is changed.
