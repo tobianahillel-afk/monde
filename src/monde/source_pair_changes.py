@@ -942,6 +942,32 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
             "monde_source_coverage": coverage}
 
 
+def source_directory_all_presence_map(world, directory, presence=None, bbox=None):
+    """Render the same *original* global source Points on the existing offline map.
+
+    Selection is identical to GeoJSON/CSV/GPKG. Display bounds never assert
+    verified position, movement or agreement between independent sources.
+    """
+    geojson = source_directory_all_presence_geojson(world, directory, presence, bbox)
+    features = geojson["features"]
+    for feature in features:
+        feature["properties"]["monde_inside_bbox"] = True
+    earlier = directory["cutoffs"]["earlier"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": list(bbox) if bbox is not None else _source_display_bbox(features),
+        "valid_at": earlier["world_at"],
+        "knowledge_cutoff": earlier["knowledge_at"],
+        "total_matching_entities": len({
+            feature["properties"]["entity"] for feature in features}),
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    geojson["monde_source_coverage"]["display_basis"] = (
+        "ONE_ORIGINAL_POINT_PER_SOURCE_IDENTITY_NOT_VERIFIED_MOVEMENT")
+    return geojson
+
+
 def source_directory_all_presence_csv(world, directory, presence=None, bbox=None):
     """Spreadsheet-safe original Point identities, using the global GeoJSON selection."""
     features = source_directory_all_presence_geojson(

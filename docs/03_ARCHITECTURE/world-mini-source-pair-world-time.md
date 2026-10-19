@@ -858,3 +858,17 @@ identifiers, original coordinates, both world/knowledge cutoffs, temporal
 visibility and all original feature properties as JSON. User-controlled text
 cells escape leading spreadsheet formulas. Existing read-only HTTP response
 size, attachment and no-store protections apply; no new external dependency.
+
+
+### Global original Point evidence map (WORK-0131 candidate)
+
+The local source directory can open `format=presence-all-map` on `/source-pair`,
+using the same reporter-prefix, earlier/later/both presence, world-time and
+knowledge-time filters as the global GeoJSON, CSV and GeoPackage downloads.
+An optional WGS84 `bbox=west,south,east,north` restricts **original** Point
+reports, including wrapped antimeridian bounds. The native directory forms
+also expose global and regional map navigation. One source assertion/evidence/
+coordinate identity is shown once, with its two cutoff visibility attributes;
+none of the maps asserts consensus, movement or a confirmed real-world position.
+The endpoint is loopback GET-only, has the existing response-size limit and
+content security policy, and does not change the saved WorldMini snapshot.

@@ -2938,5 +2938,85 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
         self.assertEqual(saved.read_bytes(), baseline)
 
+
+    def test_global_presence_map_reuses_exact_original_point_geojson(self):
+        """Live HTTP map uses the global original evidence selector, no inferred movement."""
+        from monde.source_pair_changes import source_directory_all_presence_map
+        query = self.knowledge()
+        base = {**query, "format": "presence-all-geojson"}
+        original = json.loads(self.get(base)[2])
+        status, headers, rendered = self.get({**query, "format": "presence-all-map"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/html", headers["Content-Type"])
+        self.assertIn(b"Original source", rendered)
+        self.assertIn(b"Both comparison periods", rendered)
+        self.assertIn(b"not verified movement", rendered)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        directory = json.loads(self.get({**query, "format": "json"})[2])
+        layer = source_directory_all_presence_map(self.world, directory)
+        self.assertEqual([f["id"] for f in layer["features"]],
+                         [f["id"] for f in original["features"]])
+        self.assertEqual([f["geometry"] for f in layer["features"]],
+                         [f["geometry"] for f in original["features"]])
+        self.assertEqual(layer["monde_bbox_query"]["total_source_features"],
+                         len(original["features"]))
+        self.assertTrue(all(f["properties"]["monde_inside_bbox"]
+                            for f in layer["features"]))
+        self.assertIn(b"Map all selected original Points", self.get(
+            {**query, "format": "table"})[2])
+        self.assertIn(b"Open area evidence map", self.get(
+            {**query, "format": "table"})[2])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_presence_map_respects_reporter_and_temporal_filters(self):
+        from monde.source_pair_changes import source_directory_all_presence_map
+        for presence in ("earlier", "later", "both"):
+            query = {**self.knowledge(), "source_prefix": "survey-a",
+                     "presence": presence}
+            self.assertEqual(self.get({**query, "format": "presence-all-map"})[0], 200)
+            directory = json.loads(self.get({**query, "format": "json"})[2])
+            layer = source_directory_all_presence_map(self.world, directory, presence)
+            geo = json.loads(self.get({**query, "format": "presence-all-geojson"})[2])
+            self.assertEqual([f["id"] for f in layer["features"]],
+                             [f["id"] for f in geo["features"]])
+            self.assertEqual(layer["monde_source_coverage"]["presence_filter"], presence)
+        for bad in ({"entity": "site-1"}, {"source": "survey-a"},
+                    {"presence": "invalid"}, {"bbox": "nan,-1,2,1"},
+                    {"bbox": "0,0,0,1"}, {"unexpected": "evil"}):
+            self.assertEqual(self.get({
+                **self.knowledge(), "format": "presence-all-map", **bad})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_presence_map_wrapped_bbox_and_empty_area_are_read_only(self):
+        from monde.source_pair_changes import source_directory_all_presence_map
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "dateline-presence-map.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for bbox in ("179,-1,-179,1", "40,40,41,41"):
+                query = {"directory": "1", "axis": "world", "from_at": EARLY,
+                         "to_at": LATE, "known_at": KNOWN, "bbox": bbox}
+                status, _, rendered = self.get({**query, "format": "presence-all-map"}, server)
+                self.assertEqual(status, 200)
+                self.assertIn(b"Both comparison periods", rendered)
+                source = json.loads(self.get({**query, "format": "presence-all-geojson"},
+                                             server)[2])
+                directory = json.loads(self.get({**query, "format": "json"}, server)[2])
+                box = [float(x) for x in bbox.split(",")]
+                layer = source_directory_all_presence_map(world, directory, bbox=box)
+                self.assertEqual(layer["monde_bbox_query"]["bbox"], box)
+                self.assertEqual([f["id"] for f in layer["features"]],
+                                 [f["id"] for f in source["features"]])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), initial)
+
 if __name__ == "__main__":
     unittest.main()
