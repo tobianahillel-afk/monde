@@ -1025,6 +1025,47 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
 
 
 
+
+def source_directory_global_pair_matrix_csv(matrix):
+    """Export exact reporter-presence matrix rows without inventing agreement.
+
+    Each entity/cutoff row preserves aligned original IDs and coordinates as
+    JSON arrays inside CSV cells. It reuses the already-selected JSON matrix.
+    """
+    if matrix.get("schema") != "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1":
+        raise ValueError("original reporter matrix required")
+
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(
+            ("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    def original_columns(reports):
+        return tuple(json.dumps(reports[key], ensure_ascii=False,
+                                separators=(",", ":"), allow_nan=False)
+                     for key in ("assertion_ids", "evidence_ids", "coordinates"))
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("entity", "period", "reporting_status",
+                     "source_a", "source_b", "source_a_count", "source_b_count",
+                     "source_a_assertion_ids_json", "source_a_evidence_ids_json",
+                     "source_a_coordinates_json", "source_b_assertion_ids_json",
+                     "source_b_evidence_ids_json", "source_b_coordinates_json",
+                     "world_at", "knowledge_at"))
+    for item in matrix["entities"]:
+        for period in ("earlier", "later"):
+            row = item[period]
+            a, b = row["source_a"], row["source_b"]
+            cutoff = matrix["cutoffs"][period]
+            writer.writerow((safe(item["entity"]), period, row["status"],
+                             safe(matrix["source_a"]), safe(matrix["source_b"]),
+                             a["count"], b["count"], *original_columns(a),
+                             *original_columns(b),
+                             cutoff["world_at"], cutoff["knowledge_at"]))
+    return output.getvalue()
+
+
 def source_directory_all_presence_map(world, directory, presence=None, bbox=None,
                                       source_exact=None, source_compare=None):
     """Render the same *original* global source Points on the existing offline map.
