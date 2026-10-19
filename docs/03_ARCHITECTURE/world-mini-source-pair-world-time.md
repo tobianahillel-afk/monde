@@ -1082,3 +1082,8 @@ request without the parameter retains existing behavior. JSON rows retain
 filters apply to the same original evidence selection. This is not a claim
 about movement, accuracy, agreement or physical truth. Saved evidence is
 read-only and remains unchanged.
+
+
+### Direction des franchissements d'écart entre reporters (WORK-0141)
+
+Pour `gap_crossing_km=N`, le paramètre optionnel `gap_crossing_direction=above|below` sélectionne respectivement `CROSSED_ABOVE` ou `CROSSED_BELOW` sur les observations Point originales **comparables aux deux instants**. Sans direction, les deux catégories sont conservées. `gap_crossing_direction` sans seuil est rejeté. Le tableau local, la réponse JSON, le CSV (`reporter_gap_crossing`), le GeoJSON et la carte conservent la même sélection et les identifiants de preuves originaux. Aucune direction n'est inférée lorsque des observations manquent ; aucun mouvement physique n'est prétendu.

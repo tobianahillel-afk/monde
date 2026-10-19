@@ -363,13 +363,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=20)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "bbox", "region_source", "region_period", "source_prefix"})
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "bbox", "region_source", "region_period", "source_prefix"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "bbox", "region_source", "region_period", "source_prefix"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "bbox", "region_source", "region_period", "source_prefix"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -1293,7 +1293,8 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         body.append('<tr><th scope="row">' + escape(entity) + ' · ' +
                     ' · '.join(links) + "</th><td>" +
                     escape(item["reporting_transition"]) + "</td><td>" +
-                    escape(item["reporter_gap_trend"]) + "</td>" +
+                    escape(item["reporter_gap_trend"]) + "</td><td>" +
+                    escape(item.get("reporter_gap_crossing", "—")) + "</td>" +
                     "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def transition_link(value, text):
@@ -1317,7 +1318,8 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
     hidden = {k: v for k, v in shared.items()
               if k not in ("min_gap_km", "min_gap_change_km",
-                           "gap_crossing_km", "gap_order", "gap_window")}
+                           "gap_crossing_km", "gap_crossing_direction",
+                           "gap_order", "gap_window")}
     priority = (
         '<form method="get" action="/source-pair"><fieldset>'
         '<legend>Prioritize original reporter Point separation</legend>' +
@@ -1334,7 +1336,14 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '"></label><label>Gap threshold crossing (km)'
         '<input type="number" name="gap_crossing_km" min="0" max="20015" step="0.001"'
         ' value="' + escape(shared.get("gap_crossing_km", ""), quote=True) +
-        '"></label><label>At <select name="gap_window">'
+        '"></label><label>Crossing direction <select name="gap_crossing_direction">'
+        '<option value=""' +
+        (' selected' if not shared.get("gap_crossing_direction") else '') +
+        '>Both directions</option><option value="above"' +
+        (' selected' if shared.get("gap_crossing_direction") == "above" else '') +
+        '>Above threshold</option><option value="below"' +
+        (' selected' if shared.get("gap_crossing_direction") == "below" else '') +
+        '>Below threshold</option></select></label><label>At <select name="gap_window">'
         '<option value="either"' +
         (' selected' if shared.get("gap_window", "either") == "either" else '') +
         '>Either cutoff</option><option value="both"' +
@@ -1375,6 +1384,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '</caption><thead><tr><th rowspan="2">Entity</th>'
         '<th rowspan="2">Evidence transition</th>'
         '<th rowspan="2">Gap trend</th>'
+        '<th rowspan="2">Crossing direction</th>'
         '<th colspan="5">Earlier</th><th colspan="5">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
         '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
@@ -1410,19 +1420,21 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         args = {k: v for k, v in args.items() if k != "min_gap_change_km"}
     if args.get("gap_crossing_km") == "":
         args = {k: v for k, v in args.items() if k != "gap_crossing_km"}
+    if args.get("gap_crossing_direction") == "":
+        args = {k: v for k, v in args.items() if k != "gap_crossing_direction"}
     if args.get("directory") != "1" or args.get("format", "table") not in (
             "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1482,6 +1494,11 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
                 float(value) > 20015):
             raise ValueError("invalid original reporter gap crossing threshold")
+    if "gap_crossing_direction" in args and (
+            "gap_crossing_km" not in args or
+            args.get("format") not in formats or
+            args["gap_crossing_direction"] not in ("above", "below")):
+        raise ValueError("invalid original reporter crossing direction")
     if "gap_order" in args and (
             args.get("format") not in formats or
             args["gap_order"] not in ("largest", "largest-change")):
@@ -2614,7 +2631,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 float(args["min_gap_change_km"]) if
                                 "min_gap_change_km" in args else None,
                                 float(args["gap_crossing_km"]) if
-                                "gap_crossing_km" in args else None)
+                                "gap_crossing_km" in args else None,
+                                args.get("gap_crossing_direction"))
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",

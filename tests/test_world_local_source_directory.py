@@ -4345,5 +4345,80 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(json.loads(payload), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_reporter_crossing_direction_live_http_and_export_parity(self):
+        """Compare signed original-source gap crossings on both temporal axes."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            q = {**base, "compare_a": "survey-a", "compare_b": "survey-b"}
+            rows = json.loads(self.get({**q,
+                "format": "presence-all-compare-json"})[2])["entities"]
+            candidates = [r for r in rows if
+                          r["earlier"]["separation_km"] is not None and
+                          r["later"]["separation_km"] is not None]
+            thresholds = {"0", "1"} | {
+                str(r["earlier"]["separation_km"]["nearest_km"])
+                for r in candidates}
+            for threshold in thresholds:
+                all_rows = json.loads(self.get({**q, "gap_crossing_km": threshold,
+                    "format": "presence-all-compare-json"})[2])["entities"]
+                for direction, token in (("above", "CROSSED_ABOVE"),
+                                         ("below", "CROSSED_BELOW")):
+                    expected = {r["entity"]: r for r in all_rows
+                                if r["reporter_gap_crossing"] == token}
+                    query = {**q, "gap_crossing_km": threshold,
+                             "gap_crossing_direction": direction}
+                    status, _, body = self.get({**query,
+                        "format": "presence-all-compare-json"})
+                    self.assertEqual(status, 200)
+                    result = json.loads(body)
+                    self.assertEqual({r["entity"]: r for r in result["entities"]},
+                                     expected)
+                    self.assertEqual(result["gap_selection"]["crossing_direction"],
+                                     direction)
+                    csv_bytes = self.get({**query,
+                        "format": "presence-all-compare-csv"})[2]
+                    csv_rows = list(csv.DictReader(
+                        io.StringIO(csv_bytes.decode("utf-8"))))
+                    self.assertEqual({r["entity"] for r in csv_rows},
+                                     set(expected))
+                    self.assertTrue(all(r["reporter_gap_crossing"] == token
+                                        for r in csv_rows))
+                    geo = json.loads(self.get({**query,
+                        "format": "presence-all-compare-geojson"})[2])
+                    self.assertEqual({f["properties"]["entity"]
+                                      for f in geo["features"]}, set(expected))
+                    table = self.get({**query,
+                        "format": "presence-all-compare-table"})[2]
+                    self.assertIn(b"Crossing direction", table)
+                    self.assertIn(b'name="gap_crossing_direction"', table)
+                    self.assertEqual(self.get({**query,
+                        "format": "presence-all-compare-map"})[0], 200)
+            # Empty browser dropdown must never inject an unintended direction.
+            _, _, none = self.get({**q, "gap_crossing_direction": "",
+                "format": "presence-all-compare-json"})
+            _, _, original = self.get({**q,
+                "format": "presence-all-compare-json"})
+            self.assertEqual(none, original)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_crossing_direction_strict_scope(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b"}
+        for value in ("up", "DOWN", "both", "0", "above%20", " above"):
+            status, _, body = self.get({**q,
+                "gap_crossing_km": "1", "gap_crossing_direction": value,
+                "format": "presence-all-compare-json"})
+            self.assertEqual(status, 400, value)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        for fmt in ("presence-all-map", "json"):
+            self.assertEqual(self.get({**q, "gap_crossing_km": "1",
+                "gap_crossing_direction": "above", "format": fmt})[0], 400)
+        self.assertEqual(self.get({**q, "gap_crossing_direction": "above",
+            "format": "presence-all-compare-json"})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
 if __name__ == "__main__":
     unittest.main()
