@@ -1007,7 +1007,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
                                         transition=None, gap_trend=None,
                                         min_gap_km=None, gap_order=None,
-                                        gap_window=None, min_gap_change_km=None):
+                                        gap_window=None, min_gap_change_km=None,
+                                        gap_crossing_km=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1086,8 +1087,14 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
     if gap_window not in (None, "either", "both") or (
             gap_window is not None and min_gap_km is None):
         raise ValueError("invalid reporter gap window")
-    if min_gap_km is None and gap_order is None and min_gap_change_km is None:
+    if (min_gap_km is None and gap_order is None and
+            min_gap_change_km is None and gap_crossing_km is None):
         return matrix
+    if gap_crossing_km is not None and (
+            type(gap_crossing_km) not in (int, float) or
+            not isfinite(gap_crossing_km) or
+            not 0 <= gap_crossing_km <= 20015):
+        raise ValueError("invalid reporter gap crossing threshold")
     if min_gap_change_km is not None and (
             type(min_gap_change_km) not in (int, float) or
             not isfinite(min_gap_change_km) or
@@ -1107,6 +1114,18 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         if gap_window == "both":
             return min(values) if len(values) == 2 else None
         return max(values) if values else None
+    def crossing(row):
+        if gap_crossing_km is None:
+            return None
+        before, after = (row[p]["separation_km"] for p in ("earlier", "later"))
+        if before is None or after is None:
+            return None
+        old, new = before["nearest_km"], after["nearest_km"]
+        if old <= gap_crossing_km < new:
+            return "CROSSED_ABOVE"
+        if new <= gap_crossing_km < old:
+            return "CROSSED_BELOW"
+        return None
     before = len(matrix["entities"])
     rows = [
         r for r in matrix["entities"]
@@ -1115,7 +1134,10 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         and (min_gap_change_km is None or
              (r["separation_change_km"] is not None and
               abs(r["separation_change_km"]["nearest_km"]) >= min_gap_change_km))
+        and (gap_crossing_km is None or crossing(r) is not None)
     ]
+    if gap_crossing_km is not None:
+        rows = [{**r, "reporter_gap_crossing": crossing(r)} for r in rows]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
     elif gap_order == "largest-change":
@@ -1138,6 +1160,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             "per_period": counts, "gap_selection": {
                 "minimum_nearest_km": min_gap_km,
                 "minimum_abs_change_km": min_gap_change_km,
+                "crossing_threshold_km": gap_crossing_km,
                 "order": gap_order or "entity",
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,
@@ -1243,6 +1266,9 @@ def source_directory_global_pair_transition_geojson(
                 categories[props["entity"]]["reporting_transition"],
             "monde_reporter_gap_trend":
                 categories[props["entity"]]["reporter_gap_trend"],
+            **({"monde_reporter_gap_crossing":
+                categories[props["entity"]]["reporter_gap_crossing"]}
+               if "reporter_gap_crossing" in categories[props["entity"]] else {}),
             **({"monde_nearest_original_pair_periods": marked}
                if marked else {})}}
 
