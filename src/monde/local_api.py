@@ -1305,10 +1305,26 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
+    hidden = {k: v for k, v in shared.items()
+              if k not in ("min_gap_km", "gap_order")}
+    priority = (
+        '<form method="get" action="/source-pair"><fieldset>'
+        '<legend>Prioritize original reporter Point separation</legend>' +
+        "".join('<input type="hidden" name="' + escape(k, quote=True) +
+                '" value="' + escape(str(v), quote=True) + '">'
+                for k, v in hidden.items()) +
+        '<input type="hidden" name="format" value="presence-all-compare-table">'
+        '<label>Minimum nearest gap (km; either cutoff)'
+        '<input type="number" name="min_gap_km" min="0" max="20015" step="0.001"'
+        ' value="' + escape(shared.get("min_gap_km", ""), quote=True) +
+        '"></label><label>Ranking <select name="gap_order">'
+        '<option value="largest">Largest original-report gap first</option>'
+        '</select></label><button type="submit">Prioritize evidence</button>'
+        '</fieldset></form>')
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8">'
         "<title>Original reporter Point matrix</title>"
-        "<h1>Original reporter Point matrix</h1><p>" +
+        "<h1>Original reporter Point matrix</h1>" + priority + "<p>" +
         escape(doc["source_a"]) + " versus " + escape(doc["source_b"]) +
         "</p><p>" + escape(doc["interpretation"]) + "</p><p>" +
         link("presence-all-map", "Open original evidence map") + " · " +
@@ -1364,13 +1380,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1409,6 +1425,19 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args["gap_trend"] not in
                 ("widening", "narrowing", "steady", "unknown")):
         raise ValueError("invalid original reporter gap trend")
+    formats = ("presence-all-compare-json", "presence-all-compare-table",
+               "presence-all-compare-csv", "presence-all-compare-map",
+               "presence-all-compare-geojson")
+    if "min_gap_km" in args:
+        value = args["min_gap_km"]
+        if (args.get("format") not in formats or
+                not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
+                float(value) > 20015):
+            raise ValueError("invalid original reporter gap threshold")
+    if "gap_order" in args and (
+            args.get("format") not in formats or
+            args["gap_order"] != "largest"):
+        raise ValueError("invalid original reporter gap order")
     if "focus_entity" in args:
         focus = args["focus_entity"]
         if (not comparing or args.get("format") not in
@@ -2525,7 +2554,9 @@ def create_server(state: str | Path, port: int = 0, *,
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
                                 compare_sources, args.get("transition"),
-                                args.get("gap_trend"))
+                                args.get("gap_trend"),
+                                float(args["min_gap_km"]) if "min_gap_km" in args else None,
+                                args.get("gap_order"))
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",
