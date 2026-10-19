@@ -1234,6 +1234,12 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def assertions(data):
         return ", ".join(escape(str(x)) for x in data["assertion_ids"]) or "—"
 
+    def separation(period):
+        value = period["separation_km"]
+        return ("—" if value is None else
+                str(value["nearest_km"]) + " to " +
+                str(value["farthest_km"]) + " km")
+
     # Existing read-only drill-downs keep both temporal cutoffs, but not the
     # global bbox; entity evidence may legitimately exist outside the viewport.
     retained = {key: args[key] for key in (
@@ -1257,10 +1263,17 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 assertions(p["source_a"]) + "</td>",
                 "<td>" + str(p["source_b"]["count"]) + " · " +
                 assertions(p["source_b"]) + "</td>",
+                "<td>" + separation(p) + "</td>",
             ))
         entity = str(item["entity"])
         links = ['<a href="' + drilldown(entity, "presence-table") +
                  '">Entity evidence</a>']
+        # Keep both reporters, transition, WGS84 viewport and temporal axes.
+        pair_query = {**args, "format": "presence-all-compare-map",
+                      "focus_entity": entity}
+        links.append('<a href="' + escape(
+            "/source-pair?" + urlencode(pair_query), quote=True) +
+            '">Compare both reporters on map</a>')
         for side, label, source in (
                 ("source_a", "Source A map", doc["source_a"]),
                 ("source_b", "Source B map", doc["source_b"])):
@@ -1269,7 +1282,8 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                     entity, "presence-map", source) + '">' + label + '</a>')
         body.append('<tr><th scope="row">' + escape(entity) + ' · ' +
                     ' · '.join(links) + "</th><td>" +
-                    escape(item["reporting_transition"]) + "</td>" +
+                    escape(item["reporting_transition"]) + "</td><td>" +
+                    escape(item["reporter_gap_trend"]) + "</td>" +
                     "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def transition_link(value, text):
@@ -1280,13 +1294,37 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         target = "/source-pair?" + urlencode(
             {**retained, "format": "presence-all-compare-table"})
         return '<a href="' + escape(target, quote=True) + '">' + text + '</a>'
+    def gap_link(value, text):
+        retained = {key: val for key, val in shared.items()
+                    if key != "gap_trend"}
+        if value is not None:
+            retained["gap_trend"] = value
+        target = "/source-pair?" + urlencode(
+            {**retained, "format": "presence-all-compare-table"})
+        return '<a href="' + escape(target, quote=True) + '">' + text + '</a>'
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
+    hidden = {k: v for k, v in shared.items()
+              if k not in ("min_gap_km", "gap_order")}
+    priority = (
+        '<form method="get" action="/source-pair"><fieldset>'
+        '<legend>Prioritize original reporter Point separation</legend>' +
+        "".join('<input type="hidden" name="' + escape(k, quote=True) +
+                '" value="' + escape(str(v), quote=True) + '">'
+                for k, v in hidden.items()) +
+        '<input type="hidden" name="format" value="presence-all-compare-table">'
+        '<label>Minimum nearest gap (km; either cutoff)'
+        '<input type="number" name="min_gap_km" min="0" max="20015" step="0.001"'
+        ' value="' + escape(shared.get("min_gap_km", "0"), quote=True) +
+        '"></label><label>Ranking <select name="gap_order">'
+        '<option value="largest">Largest original-report gap first</option>'
+        '</select></label><button type="submit">Prioritize evidence</button>'
+        '</fieldset></form>')
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8">'
         "<title>Original reporter Point matrix</title>"
-        "<h1>Original reporter Point matrix</h1><p>" +
+        "<h1>Original reporter Point matrix</h1>" + priority + "<p>" +
         escape(doc["source_a"]) + " versus " + escape(doc["source_b"]) +
         "</p><p>" + escape(doc["interpretation"]) + "</p><p>" +
         link("presence-all-map", "Open original evidence map") + " · " +
@@ -1299,13 +1337,21 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         transition_link("reporters-changed", "Reporters changed") + " · " +
         transition_link("evidence-changed", "Original evidence changed") + " · " +
         transition_link("unchanged", "Unchanged original evidence") +
+        '</nav><nav aria-label="Original source separation trends">' +
+        gap_link(None, "All separations") + " · " +
+        gap_link("widening", "Widening report gap") + " · " +
+        gap_link("narrowing", "Narrowing report gap") + " · " +
+        gap_link("steady", "Steady report gap") + " · " +
+        gap_link("unknown", "Unknown report gap") +
         '</nav><table><caption>Selected original Point reports, not agreement'
         '</caption><thead><tr><th rowspan="2">Entity</th>'
         '<th rowspan="2">Evidence transition</th>'
-        '<th colspan="3">Earlier</th><th colspan="3">Later</th></tr>'
+        '<th rowspan="2">Gap trend</th>'
+        '<th colspan="4">Earlier</th><th colspan="4">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
-        '<th>Source B assertions</th><th>Status</th>'
-        '<th>Source A assertions</th><th>Source B assertions</th></tr>'
+        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
+        '<th>Status</th><th>Source A assertions</th>'
+        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th></tr>'
         '</thead><tbody>' + "".join(body) + '</tbody></table>'
         '<p>Matching entities: ' + str(doc["total_entities"]) +
         ' of ' + str(doc["total_entities_unfiltered"]) +
@@ -1314,6 +1360,10 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         ' · Evidence changes: ' +
         str(doc["transition_counts"]["ORIGINAL_EVIDENCE_CHANGED"]) +
         ' · Unchanged: ' + str(doc["transition_counts"]["UNCHANGED"]) +
+        ' · Widening: ' + str(doc["gap_trend_counts"]["WIDENING"]) +
+        ' · Narrowing: ' + str(doc["gap_trend_counts"]["NARROWING"]) +
+        ' · Steady: ' + str(doc["gap_trend_counts"]["STEADY"]) +
+        ' · Unknown gap: ' + str(doc["gap_trend_counts"]["UNKNOWN"]) +
         '</p>' +
         '<p>Entity and source links open full original Point evidence at the '
         'same world/knowledge cutoffs, outside any global bbox filter. '
@@ -1330,13 +1380,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "gap_order", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1367,6 +1417,34 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args["transition"] not in
                 ("reporters-changed", "evidence-changed", "unchanged")):
         raise ValueError("invalid original reporter transition")
+    if "gap_trend" in args and (
+            args.get("format") not in
+                ("presence-all-compare-json", "presence-all-compare-table",
+                 "presence-all-compare-csv", "presence-all-compare-map",
+                 "presence-all-compare-geojson") or
+            args["gap_trend"] not in
+                ("widening", "narrowing", "steady", "unknown")):
+        raise ValueError("invalid original reporter gap trend")
+    formats = ("presence-all-compare-json", "presence-all-compare-table",
+               "presence-all-compare-csv", "presence-all-compare-map",
+               "presence-all-compare-geojson")
+    if "min_gap_km" in args:
+        value = args["min_gap_km"]
+        if (args.get("format") not in formats or
+                not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
+                float(value) > 20015):
+            raise ValueError("invalid original reporter gap threshold")
+    if "gap_order" in args and (
+            args.get("format") not in formats or
+            args["gap_order"] != "largest"):
+        raise ValueError("invalid original reporter gap order")
+    if "focus_entity" in args:
+        focus = args["focus_entity"]
+        if (not comparing or args.get("format") not in
+                ("presence-all-compare-map", "presence-all-compare-geojson") or
+                not 0 < len(focus) <= 200 or
+                any(ord(ch) < 32 or ord(ch) == 127 for ch in focus)):
+            raise ValueError("exact entity focus requires two reporter map export")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
@@ -2475,7 +2553,10 @@ def create_server(state: str | Path, port: int = 0, *,
                             matrix = source_directory_global_pair_matrix(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                compare_sources, args.get("transition"))
+                                compare_sources, args.get("transition"),
+                                args.get("gap_trend"),
+                                float(args["min_gap_km"]) if "min_gap_km" in args else None,
+                                args.get("gap_order"))
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",
@@ -2485,7 +2566,8 @@ def create_server(state: str | Path, port: int = 0, *,
                                 result = source_directory_global_pair_transition_geojson(
                                     world, document, matrix, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
-                                    output_format == "presence-all-compare-map")
+                                    output_format == "presence-all-compare-map",
+                                    args.get("focus_entity"))
                                 return (self._html(result) if output_format ==
                                         "presence-all-compare-map" else
                                         self._reply(200, result))

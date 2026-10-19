@@ -962,7 +962,8 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 
 def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
-                                        transition=None):
+                                        transition=None, gap_trend=None,
+                                        min_gap_km=None, gap_order=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1008,7 +1009,14 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                 }
             row[period] = {"status": status,
                            "source_a": original_identity(left),
-                           "source_b": original_identity(right)}
+                           "source_b": original_identity(right),
+                           "separation_km": _measure(left, right)}
+        before = row["earlier"]["separation_km"]
+        after = row["later"]["separation_km"]
+        row["separation_change_km"] = (
+            {kind: round(after[kind] - before[kind], 3)
+             for kind in ("nearest_km", "farthest_km")}
+            if before is not None and after is not None else None)
         rows.append(row)
     matrix = {
         "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
@@ -1020,24 +1028,64 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         "per_period": totals, "entities": rows,
         "interpretation": (
             "Original Point reporting presence within the selected area, "
-            "cutoffs and filters only. Both reported does not prove agreement, "
-            "truth, consensus, accuracy or motion. Missing reports are UNKNOWN."),
+            "cutoffs and filters only. Original reporter Point separation "
+            "does not prove agreement, accuracy, consensus, truth or motion. "
+            "Missing reports are UNKNOWN."),
     }
 
 
 
 
-    return filter_reporter_matrix_transitions(matrix, transition)
+    matrix = filter_reporter_matrix_transitions(matrix, transition, gap_trend)
+    if min_gap_km is None and gap_order is None:
+        return matrix
+    if min_gap_km is not None and (
+            isinstance(min_gap_km, bool) or
+            not isinstance(min_gap_km, (int, float)) or
+            not isfinite(min_gap_km) or not 0 <= min_gap_km <= 20015):
+        raise ValueError("invalid reporter gap threshold")
+    if gap_order not in (None, "largest"):
+        raise ValueError("invalid reporter gap order")
+    def gap(row):
+        values = [row[p]["separation_km"]["nearest_km"]
+                  for p in ("earlier", "later")
+                  if row[p]["separation_km"] is not None]
+        return max(values) if values else None
+    before = len(matrix["entities"])
+    rows = [r for r in matrix["entities"] if min_gap_km is None or
+            (gap(r) is not None and gap(r) >= min_gap_km)]
+    if gap_order == "largest":
+        rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
+    counts = {p: {k: 0 for k in ("BOTH_REPORTED", "ONLY_SOURCE_A",
+                                "ONLY_SOURCE_B")} for p in ("earlier", "later")}
+    for row in rows:
+        for period in ("earlier", "later"):
+            status = row[period]["status"]
+            if status in counts[period]:
+                counts[period][status] += 1
+    return {**matrix, "entities": rows, "total_entities": len(rows),
+            "per_period": counts, "gap_selection": {
+                "minimum_nearest_km": min_gap_km,
+                "order": gap_order or "entity",
+                "entities_before_gap_filter": before,
+                "matching_entities": len(rows),
+                "interpretation": "Original reporter Point gaps at either "
+                                  "cutoff, not truth or physical movement."}}
 
 
-def filter_reporter_matrix_transitions(matrix, transition=None):
+def filter_reporter_matrix_transitions(matrix, transition=None, gap_trend=None):
     """Classify original source/evidence differences, never physical events."""
     allowed = {"reporters-changed": "REPORTERS_CHANGED",
                "evidence-changed": "ORIGINAL_EVIDENCE_CHANGED",
                "unchanged": "UNCHANGED"}
     if transition is not None and transition not in allowed:
         raise ValueError("invalid original reporter transition")
+    trends = {"widening": "WIDENING", "narrowing": "NARROWING",
+              "steady": "STEADY", "unknown": "UNKNOWN"}
+    if gap_trend is not None and gap_trend not in trends:
+        raise ValueError("invalid reporter separation trend")
     counts = {v: 0 for v in allowed.values()}
+    gap_counts = {v: 0 for v in trends.values()}
     totals = {p: {"BOTH_REPORTED": 0, "ONLY_SOURCE_A": 0,
                   "ONLY_SOURCE_B": 0} for p in ("earlier", "later")}
     selected = []
@@ -1053,20 +1101,32 @@ def filter_reporter_matrix_transitions(matrix, transition=None):
         counts[category] += 1
         if transition is not None and allowed[transition] != category:
             continue
-        selected.append({**row, "reporting_transition": category})
+        delta = row.get("separation_change_km")
+        nearest = None if delta is None else delta["nearest_km"]
+        trend = ("UNKNOWN" if nearest is None else
+                 "WIDENING" if nearest > 0 else
+                 "NARROWING" if nearest < 0 else "STEADY")
+        gap_counts[trend] += 1
+        if gap_trend is not None and trends[gap_trend] != trend:
+            continue
+        selected.append({**row, "reporting_transition": category,
+                         "reporter_gap_trend": trend})
         for period in ("earlier", "later"):
             status = row[period]["status"]
             if status != "NOT_REPORTED":
                 totals[period][status] += 1
     return {**matrix, "entities": selected, "total_entities": len(selected),
             "total_entities_unfiltered": len(matrix["entities"]),
-            "transition_counts": counts, "per_period": totals,
-            **({"transition_filter": transition} if transition else {})}
+            "transition_counts": counts, "gap_trend_counts": gap_counts,
+            "per_period": totals,
+            **({"transition_filter": transition} if transition else {}),
+            **({"gap_trend_filter": gap_trend} if gap_trend else {})}
 
 
 
 def source_directory_global_pair_transition_geojson(
-        world, directory, matrix, presence=None, bbox=None, for_map=False):
+        world, directory, matrix, presence=None, bbox=None, for_map=False,
+        focus_entity=None):
     """Map original Point evidence for the selected reporter-matrix entities.
 
     Evidence changes are not proven physical changes or consensus.
@@ -1078,11 +1138,15 @@ def source_directory_global_pair_transition_geojson(
                 source_directory_all_presence_geojson)
     geojson = exporter(world, directory, presence, bbox,
                        source_compare=sources)
-    categories = {row["entity"]: row["reporting_transition"]
-                  for row in matrix["entities"]}
+    categories = {row["entity"]: row
+                  for row in matrix["entities"]
+                  if focus_entity is None or row["entity"] == focus_entity}
     geojson["features"] = [
         {**feature, "properties": {**feature["properties"],
-         "monde_reporting_transition": categories[feature["properties"]["entity"]]}}
+         "monde_reporting_transition":
+             categories[feature["properties"]["entity"]]["reporting_transition"],
+         "monde_reporter_gap_trend":
+             categories[feature["properties"]["entity"]]["reporter_gap_trend"]}}
         for feature in geojson["features"]
         if feature["properties"]["entity"] in categories]
     count = len(geojson["features"])
@@ -1091,11 +1155,17 @@ def source_directory_global_pair_transition_geojson(
     coverage["distinct_entities"] = len(categories)
     coverage["reporter_matrix"] = {
         "source_a": sources[0], "source_b": sources[1],
-        "matching_entities": matrix["total_entities"],
+        "matching_entities": len(categories),
         "all_entities": matrix["total_entities_unfiltered"],
+        **({"focus_entity": focus_entity,
+            "all_matching_entities": matrix["total_entities"]}
+           if focus_entity is not None else {}),
         "transition_counts": matrix["transition_counts"],
+        "gap_trend_counts": matrix["gap_trend_counts"],
         **({"transition_filter": matrix["transition_filter"]}
-           if "transition_filter" in matrix else {})}
+           if "transition_filter" in matrix else {}),
+        **({"gap_trend_filter": matrix["gap_trend_filter"]}
+           if "gap_trend_filter" in matrix else {})}
     coverage["interpretation"] = (
         "Original source Point evidence from selected reporter-matrix entities; "
         "no inferred movement, verified position, consensus or truth; "
@@ -1131,10 +1201,12 @@ def source_directory_global_pair_matrix_csv(matrix):
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("entity", "period", "reporting_status",
-                     "reporting_transition", "source_a", "source_b", "source_a_count", "source_b_count",
+                     "reporting_transition", "reporter_gap_trend",
+                     "source_a", "source_b", "source_a_count", "source_b_count",
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
+                     "nearest_reporter_separation_km", "farthest_reporter_separation_km",
                      "world_at", "knowledge_at"))
     for item in matrix["entities"]:
         for period in ("earlier", "later"):
@@ -1143,9 +1215,13 @@ def source_directory_global_pair_matrix_csv(matrix):
             cutoff = matrix["cutoffs"][period]
             writer.writerow((safe(item["entity"]), period, row["status"],
                              item.get("reporting_transition", ""),
+                             item.get("reporter_gap_trend", "UNKNOWN"),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
+                             *(("" if row.get("separation_km") is None
+                                 else row["separation_km"][kind])
+                               for kind in ("nearest_km", "farthest_km")),
                              cutoff["world_at"], cutoff["knowledge_at"]))
     return output.getvalue()
 

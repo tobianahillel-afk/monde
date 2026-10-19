@@ -3576,6 +3576,10 @@ class SourceDirectoryTests(unittest.TestCase):
                     self.assertEqual(
                         props.pop("monde_reporting_transition"),
                         categories[props["entity"]])
+                    gap = next(row["reporter_gap_trend"]
+                               for row in matrix["entities"]
+                               if row["entity"] == props["entity"])
+                    self.assertEqual(props.pop("monde_reporter_gap_trend"), gap)
                     self.assertEqual(props, prior["properties"])
                     self.assertEqual(found["geometry"], prior["geometry"])
                 coverage = actual["monde_source_coverage"]
@@ -3610,6 +3614,276 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         for fmt in ("presence-all-compare-map", "presence-all-compare-geojson"):
             self.assertEqual(self.get({**self.knowledge(), "format": fmt})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_entity_focus_opens_two_original_sources_on_map(self):
+        """Matrix row -> one-entity map, preserving both reporters and cutoffs."""
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+        status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        matrix = json.loads(raw)
+        self.assertGreater(matrix["total_entities"], 0)
+        entity = matrix["entities"][0]["entity"]
+        status, _, html = self.get({**base, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        anchors = re.findall(r'<a href="([^"]+)">Compare both reporters on map</a>',
+                             html.decode("utf-8"))
+        self.assertEqual(len(anchors), matrix["total_entities"])
+        link = next({k: values[0] for k, values in
+                     parse_qs(urlsplit(unescape(a)).query).items()}
+                    for a in anchors
+                    if parse_qs(urlsplit(unescape(a)).query)["focus_entity"][0] == entity)
+        self.assertEqual(link["format"], "presence-all-compare-map")
+        self.assertEqual((link["compare_a"], link["compare_b"]),
+                         ("survey-a", "survey-b"))
+        self.assertEqual(link["bbox"], base["bbox"])
+        for k in self.knowledge():
+            self.assertEqual(link[k], self.knowledge()[k])
+        status, _, map_html = self.get(link)
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", map_html.lower())
+
+        _, _, total_raw = self.get({
+            **base, "format": "presence-all-compare-geojson"})
+        total = json.loads(total_raw)
+        _, _, focused_raw = self.get({
+            **link, "format": "presence-all-compare-geojson"})
+        focused = json.loads(focused_raw)
+        expected = [f for f in total["features"]
+                    if f["properties"]["entity"] == entity]
+        self.assertEqual(focused["features"], expected)
+        self.assertEqual(focused["monde_source_coverage"]
+                         ["reporter_matrix"]["focus_entity"], entity)
+        self.assertEqual(focused["monde_source_coverage"]
+                         ["reporter_matrix"]["matching_entities"], 1)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_focus_respects_transition_and_world_cutoffs(self):
+        for cutoffs in (self.knowledge(),
+                        {"directory": "1", "axis": "world",
+                         "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            base = {**cutoffs, "compare_a": "survey-a",
+                    "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+            for transition in (None, "reporters-changed", "evidence-changed",
+                               "unchanged"):
+                query = {**base, **({"transition": transition} if transition else {})}
+                _, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+                matrix = json.loads(raw)
+                entity = (matrix["entities"][0]["entity"]
+                          if matrix["entities"] else "nonexistent-report")
+                _, _, raw = self.get({**query, "focus_entity": entity,
+                                       "format": "presence-all-compare-geojson"})
+                focus = json.loads(raw)
+                selected = [r for r in matrix["entities"] if r["entity"] == entity]
+                self.assertEqual(focus["monde_source_coverage"]
+                                 ["reporter_matrix"]["matching_entities"], len(selected))
+                self.assertEqual({f["properties"]["entity"] for f in focus["features"]},
+                                 {entity} if selected else set())
+                self.assertEqual(self.get({**query, "focus_entity": entity,
+                                           "format": "presence-all-compare-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_focus_rejects_ambiguous_or_unsafe_scope(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        for params in (
+                {"focus_entity": ""},
+                {"focus_entity": "site-1\nbad"},
+                {"focus_entity": "site-1", "format": "presence-all-compare-json"},
+                {"focus_entity": "site-1", "format": "presence-all-compare-csv"},
+                {"focus_entity": "site-1", "compare_b": "survey-a"},
+                {"focus_entity": "site-1", "source": "survey-a"},
+                {"focus_entity": "site-1", "entity": "site-1"},
+        ):
+            candidate = {**base, "format": "presence-all-compare-geojson", **params}
+            status, _, raw = self.get(candidate)
+            self.assertEqual(status, 400, candidate)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, raw = self.get({**self.knowledge(), "focus_entity": "site-1",
+                                   "format": "presence-all-compare-geojson"})
+        self.assertEqual(status, 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_reporter_matrix_original_point_separation_matches_http_csv_and_html(self):
+        """Quantify original source-to-source Point gaps; never infer consensus."""
+        from monde.source_pair_changes import _distance
+        for times in (self.knowledge(),
+                      {"directory": "1", "axis": "world",
+                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            params = {**times, "compare_a": "survey-a", "compare_b": "survey-b"}
+            status, _, raw = self.get({**params, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            status, _, raw = self.get({**params, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            csv_rows = {(r["entity"], r["period"]): r for r in
+                        csv.DictReader(io.StringIO(raw.decode("utf-8")))}
+            self.assertEqual(len(csv_rows), 2 * matrix["total_entities"])
+            joint = 0
+            for entity in matrix["entities"]:
+                for period in ("earlier", "later"):
+                    selected = entity[period]
+                    a_points = selected["source_a"]["coordinates"]
+                    b_points = selected["source_b"]["coordinates"]
+                    measured = selected["separation_km"]
+                    flat = csv_rows[(entity["entity"], period)]
+                    if not a_points or not b_points:
+                        self.assertIsNone(measured)
+                        self.assertEqual(flat["nearest_reporter_separation_km"], "")
+                        self.assertEqual(flat["farthest_reporter_separation_km"], "")
+                    else:
+                        joint += 1
+                        gaps = [_distance(a, b) for a in a_points for b in b_points]
+                        self.assertEqual(measured, {
+                            "nearest_km": round(min(gaps), 3),
+                            "farthest_km": round(max(gaps), 3)})
+                        self.assertEqual(float(flat["nearest_reporter_separation_km"]),
+                                         measured["nearest_km"])
+                        self.assertEqual(float(flat["farthest_reporter_separation_km"]),
+                                         measured["farthest_km"])
+                before, after = (entity[period]["separation_km"]
+                                 for period in ("earlier", "later"))
+                expected = ({kind: round(after[kind] - before[kind], 3)
+                             for kind in ("nearest_km", "farthest_km")}
+                            if before is not None and after is not None else None)
+                self.assertEqual(entity["separation_change_km"], expected)
+            self.assertGreater(joint, 0)
+            status, _, html = self.get({**params, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"Reporter separation (min-max km)", html)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_original_reporter_gap_trend_filter_json_csv_map_and_html(self):
+        """One actual saved WorldMini drives the same spatial/time evidence in all outputs."""
+        for times in (self.knowledge(),
+                      {"directory": "1", "axis": "world", "from_at": EARLY,
+                       "to_at": LATE, "known_at": KNOWN}):
+            base = {**times, "compare_a": "survey-a", "compare_b": "survey-b",
+                    "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            complete = json.loads(raw)
+            classifications = {"widening": "WIDENING", "narrowing": "NARROWING",
+                               "steady": "STEADY", "unknown": "UNKNOWN"}
+            self.assertEqual(sum(complete["gap_trend_counts"].values()),
+                             complete["total_entities"])
+            for item in complete["entities"]:
+                delta = item["separation_change_km"]
+                value = None if delta is None else delta["nearest_km"]
+                expected = ("UNKNOWN" if value is None else "WIDENING" if value > 0
+                            else "NARROWING" if value < 0 else "STEADY")
+                self.assertEqual(item["reporter_gap_trend"], expected)
+            for choice, label in classifications.items():
+                query = {**base, "gap_trend": choice}
+                _, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+                filtered = json.loads(raw)
+                self.assertEqual(filtered["gap_trend_filter"], choice)
+                self.assertEqual(filtered["gap_trend_counts"], complete["gap_trend_counts"])
+                self.assertEqual([r["entity"] for r in filtered["entities"]],
+                                 [r["entity"] for r in complete["entities"]
+                                  if r["reporter_gap_trend"] == label])
+                _, _, csv_body = self.get({**query, "format": "presence-all-compare-csv"})
+                rows = list(csv.DictReader(io.StringIO(csv_body.decode("utf-8"))))
+                self.assertEqual(len(rows), 2 * filtered["total_entities"])
+                self.assertTrue(all(row["reporter_gap_trend"] == label for row in rows))
+                _, _, raw = self.get({**query, "format": "presence-all-compare-geojson"})
+                geojson = json.loads(raw)
+                self.assertEqual(
+                    geojson["monde_source_coverage"]["reporter_matrix"]["gap_trend_filter"],
+                    choice)
+                self.assertTrue(all(
+                    x["properties"]["monde_reporter_gap_trend"] == label
+                    for x in geojson["features"]))
+                self.assertEqual(self.get({**query,
+                    "format": "presence-all-compare-map"})[0], 200)
+            _, _, html = self.get({**base, "format": "presence-all-compare-table"})
+            self.assertIn(b"Original source separation trends", html)
+            self.assertIn(b"gap_trend=widening", html)
+            self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_gap_trend_rejects_unsafe_and_unrelated_queries(self):
+        base = {**self.knowledge(), "compare_a": "survey-a", "compare_b": "survey-b"}
+        for query in ({"gap_trend": "wrong"}, {"gap_trend": ""},
+                      {"gap_trend": "WIDENING"}, {"gap_trend": "widening%0A"}):
+            status, _, raw = self.get({**base, "format": "presence-all-compare-json",
+                                       **query})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for fmt in ("presence-all-geojson", "presence-all-map", "json"):
+            status, _, raw = self.get({**base, "format": fmt,
+                                       "gap_trend": "unknown"})
+            self.assertEqual(status, 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_original_reporter_gap_priority_http_csv_map_and_snapshot(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)
+        query = {**base, "min_gap_km": "0", "gap_order": "largest"}
+        status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        picked = json.loads(raw)
+        def max_gap(row):
+            values = [row[period]["separation_km"]["nearest_km"]
+                      for period in ("earlier", "later")
+                      if row[period]["separation_km"] is not None]
+            return max(values) if values else None
+        expected = [r for r in original["entities"] if max_gap(r) is not None]
+        expected.sort(key=lambda r: (-max_gap(r), r["entity"]))
+        self.assertEqual([r["entity"] for r in picked["entities"]],
+                         [r["entity"] for r in expected])
+        self.assertEqual(picked["gap_selection"]["minimum_nearest_km"], 0.0)
+        self.assertEqual(picked["gap_selection"]["order"], "largest")
+        self.assertEqual(picked["total_original_reports"],
+                         original["total_original_reports"])
+        self.assertEqual(picked["total_entities"], len(expected))
+        status, _, raw = self.get({**query, "format": "presence-all-compare-csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual([r["entity"] for r in rows[::2]],
+                         [r["entity"] for r in expected])
+        status, _, html = self.get({**query, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Prioritize original reporter Point separation", html)
+        self.assertIn(b'name="min_gap_km"', html)
+        self.assertIn(b'name="gap_order"', html)
+        status, _, raw = self.get({**query, "format": "presence-all-compare-geojson"})
+        self.assertEqual(status, 200)
+        self.assertEqual({f["properties"]["entity"] for f in json.loads(raw)["features"]},
+                         {row["entity"] for row in expected})
+        self.assertEqual(self.get({**query, "format": "presence-all-compare-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_gap_priority_rejects_invalid_scope_both_axes(self):
+        periods = (self.knowledge(),
+                   {"directory": "1", "axis": "world",
+                    "from_at": EARLY, "to_at": LATE, "known_at": KNOWN})
+        for time in periods:
+            q = {**time, "compare_a": "survey-a", "compare_b": "survey-b"}
+            for fmt in ("presence-all-compare-json", "presence-all-compare-geojson"):
+                status, _, raw = self.get({**q, "format": fmt, "min_gap_km": "20015"})
+                self.assertEqual(status, 200)
+                output = json.loads(raw)
+                self.assertEqual(output["features"] if fmt.endswith("geojson")
+                                 else output["entities"], [])
+            for invalid in ("", "-1", "nan", "inf", "1e6", "20.1234", "20016", "01"):
+                status, _, raw = self.get({**q, "format": "presence-all-compare-json",
+                                           "min_gap_km": invalid})
+                self.assertEqual(status, 400, invalid)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+            for changes in ({"gap_order": "random"},
+                            {"format": "presence-all-map", "min_gap_km": "2"},
+                            {"format": "presence-all-geojson", "gap_order": "largest"}):
+                status, _, raw = self.get({**q, "format": "presence-all-compare-json",
+                                           **changes})
+                self.assertEqual(status, 400, changes)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 if __name__ == "__main__":

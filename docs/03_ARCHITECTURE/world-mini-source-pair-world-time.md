@@ -967,3 +967,35 @@ never infer a physical movement, a consensus location or verified ground truth.
 The GeoJSON includes filtered/unfiltered matrix counts, and an empty match yields
 an empty evidence map. No new endpoint, dependency, external service or mutation
 of the persisted WorldMini snapshot.
+
+
+### Focus a selected reporter-matrix entity on the evidence map
+
+In the two-reporter matrix, **Compare both reporters on map** now opens the
+existing read-only source map for one exact selected entity. This preserves
+both original reporters, the world/knowledge cutoffs, presence, geographic
+bbox (including wrapped antimeridian) and optional reporting-transition
+category. The same `focus_entity` selector is supported for the existing
+`presence-all-compare-geojson` export. It is rejected on other outputs or
+without two distinct reporters. Missing or category-excluded entities yield
+an empty selection, not an inferred consensus position. The persisted WorldMini
+and the original assertion/evidence/Point identities remain unchanged.
+
+### Two original reporters: measured Point separation (WORK-0136)
+
+The reporter matrix now exposes nearest/farthest geodesic kilometres **between
+original source Points** at each earlier/later bitemporal cutoff in JSON, CSV
+and HTML. It reuses `_measure` and keeps all original assertion, evidence,
+source and coordinate identities. When one reporter is missing, separation is
+JSON `null` and CSV blank. `separation_change_km` measures later-minus-earlier
+report-to-report gaps only when two sources report at both cutoffs. These
+values do not represent ground truth, source accuracy, consensus or motion.
+
+## Original two-reporter gap direction filters (WORK-0136)
+
+The same read-only `/source-pair?directory=1` reporter matrix (JSON, CSV, HTML, offline map and GeoJSON) now accepts `gap_trend=widening|narrowing|steady|unknown`. The selection operates on the **nearest source-to-source Point report separation** computed at both bitemporal cutoffs, using the existing rounded kilometer measurements. `unknown` means either cutoff lacks jointly reported Points; it is never silently interpreted as zero kilometers. The matrix HTML exposes corresponding links and counts; scoped map/GeoJSON retains exact original reporter, assertion, evidence and WGS84 identities. It is a change in separation of *reports*, not validated movement, ground truth or improved/worsened source reliability. No new route, dependency, network service or persistent-state write.
+
+
+## Prioritize original reporter Point separation (WORK-0136)
+
+The same two-reporter matrix accepts `min_gap_km=10` and `gap_order=largest` in JSON, native HTML, CSV, GeoJSON and browser map outputs. The table offers a native GET form preserving sources, bitemporal cutoffs, transition and spatial area. The qualifying distance is the *nearest original reporter Point gap* measured at **either** cutoff; missing joint reports remain UNKNOWN rather than zero. Larger gaps appear first, with entity ID as a deterministic tie-breaker. The source points and evidence identities are unchanged; no consensus, physical movement, reliability assessment or snapshot mutation is implied.
