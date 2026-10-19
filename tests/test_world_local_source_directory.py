@@ -4484,19 +4484,17 @@ class SourceDirectoryTests(unittest.TestCase):
 
     def test_crossing_margin_ranking_by_reported_later_overshoot(self):
         """Use source-reported threshold margin, never inferred motion."""
-        for base in (self.knowledge(),
-                     {"directory": "1", "axis": "world",
-                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+        for base in (self.knowledge(),):
             q = {**base, "compare_a": "survey-a", "compare_b": "survey-b",
-                 "gap_crossing_km": "1", "gap_order": "largest-margin"}
+                 "gap_crossing_km": "150", "gap_order": "largest-margin"}
             status, _, body = self.get({**q, "format": "presence-all-compare-json"})
             self.assertEqual(status, 200)
             doc = json.loads(body)
             rows = doc["entities"]
             def margin(row):
                 new = row["later"]["separation_km"]["nearest_km"]
-                return (new - 1 if row["reporter_gap_crossing"] == "CROSSED_ABOVE"
-                        else 1 - new)
+                return (new - 150 if row["reporter_gap_crossing"] == "CROSSED_ABOVE"
+                        else 150 - new)
             self.assertEqual(rows, sorted(rows, key=lambda r: (-margin(r), r["entity"])))
             self.assertEqual(doc["gap_selection"]["order"], "largest-margin")
             self.assertTrue(rows)
@@ -4546,6 +4544,41 @@ class SourceDirectoryTests(unittest.TestCase):
                 "reporter_gap_crossing_margin_km" not in r
                 for r in json.loads(no_threshold)["entities"]))
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_crossing_margin_world_axis_uses_world_validity_fixture(self):
+        """Keep the world-axis crossing assertion on genuinely changing validity."""
+        world = sample()
+        saved = Path(self.tmp.name) / "world-crossing.json"
+        world.save(saved)
+        original = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN,
+                 "compare_a": "survey-a", "compare_b": "survey-b",
+                 "gap_crossing_km": "150", "gap_order": "largest-margin"}
+            code, _, raw = self.get({
+                **q, "format": "presence-all-compare-json"}, server)
+            self.assertEqual(code, 200)
+            rows = json.loads(raw)["entities"]
+            self.assertTrue(rows, "sample fixture must cross 150 km world-time")
+            for row in rows:
+                self.assertEqual(row["reporter_gap_crossing"], "CROSSED_BELOW")
+                nearest = row["later"]["separation_km"]["nearest_km"]
+                self.assertAlmostEqual(
+                    row["reporter_gap_crossing_margin_km"], 150 - nearest)
+            points = json.loads(self.get({
+                **q, "format": "presence-all-compare-geojson"}, server)[2])
+            self.assertEqual(
+                {f["properties"]["entity"] for f in points["features"]},
+                {r["entity"] for r in rows})
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), original)
 
     def test_crossing_margin_ranking_rejects_invalid_scope(self):
         q = {**self.knowledge(), "compare_a": "survey-a", "compare_b": "survey-b",
