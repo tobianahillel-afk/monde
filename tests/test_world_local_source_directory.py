@@ -4896,5 +4896,82 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.get(q)[0], 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_original_reporter_evidence_zip_matches_all_http_exports(self):
+        from hashlib import sha256
+        from zipfile import ZipFile
+        for basis in (self.knowledge(),
+                      {"directory": "1", "axis": "world",
+                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            q = {**basis, "compare_a": "survey-a", "compare_b": "survey-b",
+                 "gap_crossing_km": "1"}
+            selected = {**q, "format": "presence-all-compare-bundle"}
+            status, headers, raw = self.get(selected)
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Content-Type"], "application/zip")
+            self.assertEqual(headers["Cache-Control"], "no-store")
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+            self.assertEqual(int(headers["Content-Length"]), len(raw))
+            self.assertEqual(self.get(selected)[2], raw)
+            with ZipFile(io.BytesIO(raw)) as archive:
+                self.assertEqual(set(archive.namelist()), {
+                    "manifest.json", "matrix.json", "matrix.csv",
+                    "original-points.geojson", "analytical-witnesses.geojson",
+                    "analytical-witnesses.csv"})
+                self.assertTrue(all(i.date_time[:3] == (1980, 1, 1)
+                                    for i in archive.infolist()))
+                manifest = json.loads(archive.read("manifest.json"))
+                self.assertEqual(manifest["schema"],
+                                 "MONDE_ORIGINAL_REPORTER_EVIDENCE_BUNDLE_V1")
+                self.assertEqual(manifest["source_a"], "survey-a")
+                self.assertEqual(manifest["source_b"], "survey-b")
+                self.assertEqual(manifest["axis"], basis["axis"])
+                for name, info in manifest["files"].items():
+                    blob = archive.read(name)
+                    self.assertEqual(info["bytes"], len(blob))
+                    self.assertEqual(info["sha256"], sha256(blob).hexdigest())
+                for file_name, fmt in (
+                    ("matrix.json", "presence-all-compare-json"),
+                    ("original-points.geojson", "presence-all-compare-geojson"),
+                    ("analytical-witnesses.geojson",
+                     "presence-all-compare-witness-geojson"),
+                ):
+                    self.assertEqual(json.loads(archive.read(file_name)),
+                                     json.loads(self.get({**q, "format": fmt})[2]))
+                for file_name, fmt in (
+                    ("matrix.csv", "presence-all-compare-csv"),
+                    ("analytical-witnesses.csv", "presence-all-compare-witness-csv"),
+                ):
+                    self.assertEqual(archive.read(file_name),
+                                     self.get({**q, "format": fmt})[2])
+                originals = json.loads(archive.read("original-points.geojson"))
+                self.assertTrue(all(f["properties"].get("monde_geometry_role") !=
+                                    "ANALYTICAL_REPORTER_GAP_WITNESS"
+                                    for f in originals["features"]))
+                analytical = json.loads(archive.read("analytical-witnesses.geojson"))
+                self.assertTrue(all(f["properties"]["monde_original_observation"]
+                                    is False for f in analytical["features"]
+                                    if f["properties"].get("monde_geometry_role") ==
+                                       "ANALYTICAL_REPORTER_GAP_WITNESS"))
+            table = self.get({**q, "format": "presence-all-compare-table"})[2]
+            self.assertIn(b"Download complete offline evidence ZIP", table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_evidence_zip_rejects_invalid_combinations(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b", "format": "presence-all-compare-bundle"}
+        for bad in (
+            {k: v for k, v in q.items() if k != "compare_b"},
+            {**q, "compare_b": "survey-a"},
+            {**q, "witness_period": "later"},
+            {**q, "focus_entity": "E"},
+            {**q, "gap_crossing_direction": "above"},
+            {**q, "unknown": "x"},
+        ):
+            status, _, body = self.get(bad)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

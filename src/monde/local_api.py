@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from hashlib import sha256
 import io
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,6 +16,7 @@ import math
 import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
+from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 from .world import WorldMini, _time, _id
 
@@ -1229,6 +1231,56 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 
 
+def _reporter_evidence_archive(world, directory, matrix, args):
+    """Bundle selected original reporter evidence and distinct analytic witnesses."""
+    from .source_pair_changes import (
+        source_directory_global_pair_transition_geojson,
+        source_directory_global_pair_witness_geojson,
+        source_directory_global_pair_matrix_csv,
+        source_directory_global_pair_witness_csv,
+    )
+    bounds = _bbox(args["bbox"]) if "bbox" in args else None
+    original = source_directory_global_pair_transition_geojson(
+        world, directory, matrix, args.get("presence"), bounds, False, None)
+    witness = source_directory_global_pair_witness_geojson(
+        world, directory, matrix, args.get("presence"), bounds, False, None)
+
+    def as_json(value):
+        return (json.dumps(value, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":")) + "\n").encode("utf-8")
+
+    files = {
+        "matrix.json": as_json(matrix),
+        "matrix.csv": source_directory_global_pair_matrix_csv(matrix).encode("utf-8"),
+        "original-points.geojson": as_json(original),
+        "analytical-witnesses.geojson": as_json(witness),
+        "analytical-witnesses.csv": source_directory_global_pair_witness_csv(
+            witness).encode("utf-8"),
+    }
+    manifest = {
+        "schema": "MONDE_ORIGINAL_REPORTER_EVIDENCE_BUNDLE_V1",
+        "source_a": matrix["source_a"], "source_b": matrix["source_b"],
+        "axis": matrix["axis"], "cutoffs": matrix["cutoffs"],
+        "selection": {k: v for k, v in args.items() if k != "format"},
+        "original_observations_only": ["original-points.geojson"],
+        "analytical_not_original": ["analytical-witnesses.geojson",
+                                    "analytical-witnesses.csv"],
+        "interpretation": ("Original reporter observations are not ground truth; "
+                           "schematic connections are not physical routes or movement."),
+        "files": {name: {"sha256": sha256(payload).hexdigest(),
+                         "bytes": len(payload)} for name, payload in files.items()},
+    }
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w", compression=ZIP_STORED) as archive:
+        for name, payload in [("manifest.json", as_json(manifest)),
+                              *sorted(files.items())]:
+            item = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            item.compress_type = ZIP_STORED
+            item.external_attr = 0o600 << 16
+            archive.writestr(item, payload)
+    return buffer.getvalue()
+
+
 def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     """Read-only HTML presentation of the original bitemporal source matrix."""
     def assertions(data):
@@ -1378,6 +1430,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         link("presence-all-map", "Open original evidence map") + " · " +
         link("presence-all-compare-json", "Download reporter matrix JSON") + " · " +
         link("presence-all-compare-csv", "Download reporter matrix CSV") + " · " +
+        link("presence-all-compare-bundle", "Download complete offline evidence ZIP") + " · " +
         link("presence-all-compare-map", "Map matching original reports") + " · " +
         link("presence-all-compare-geojson", "Download matching original Points GeoJSON") +
         " · " + link("presence-all-compare-witness-geojson",
@@ -1445,7 +1498,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("min_crossing_margin_km") == "":
         args = {k: v for k, v in args.items() if k != "min_crossing_margin_km"}
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1467,7 +1520,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 args.get("format") not in
                     ("presence-all-map", "presence-all-geojson",
                      "presence-all-csv", "presence-all-gpkg",
-                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
+                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle") or
                 any(k in args for k in
                     ("entity", "source", "source_exact", "source_prefix")) or
                 args["compare_a"] == args["compare_b"]):
@@ -1478,12 +1531,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                     ord(ch) < 32 or ord(ch) == 127 for ch in value):
                 raise ValueError("invalid compared original reporter")
     if args.get("format") in ("presence-all-compare-json",
-                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") and not comparing:
+                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle") and not comparing:
         raise ValueError("reporter matrix requires two different sources")
     if "transition" in args and (
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
-                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
+                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle") or
             args["transition"] not in
                 ("reporters-changed", "evidence-changed", "unchanged")):
         raise ValueError("invalid original reporter transition")
@@ -1491,13 +1544,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
                  "presence-all-compare-csv", "presence-all-compare-map",
-                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
+                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle") or
             args["gap_trend"] not in
                 ("widening", "narrowing", "steady", "unknown")):
         raise ValueError("invalid original reporter gap trend")
     formats = ("presence-all-compare-json", "presence-all-compare-table",
                "presence-all-compare-csv", "presence-all-compare-map",
-               "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv")
+               "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-all-compare-bundle")
     if "min_gap_km" in args:
         value = args["min_gap_km"]
         if (args.get("format") not in formats or
@@ -2655,7 +2708,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             return
                         if output_format in ("presence-all-compare-json",
                                              "presence-all-compare-table", "presence-all-compare-csv",
-                                             "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"):
+                                             "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv",
+                                             "presence-all-compare-bundle"):
                             from .source_pair_changes import source_directory_global_pair_matrix
                             matrix = source_directory_global_pair_matrix(
                                 world, document, args.get("presence"),
@@ -2674,6 +2728,21 @@ def create_server(state: str | Path, port: int = 0, *,
                                 "min_crossing_margin_km" in args else None)
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
+                            if output_format == "presence-all-compare-bundle":
+                                payload = _reporter_evidence_archive(
+                                    world, document, matrix, args)
+                                if len(payload) > max_response_bytes:
+                                    return self._reply(413, {"error": "response_too_large"})
+                                self.send_response(200)
+                                self.send_header("Content-Type", "application/zip")
+                                self.send_header("Content-Disposition",
+                                                 'attachment; filename="monde-reporter-evidence.zip"')
+                                self.send_header("Content-Length", str(len(payload)))
+                                self.send_header("Cache-Control", "no-store")
+                                self.send_header("X-Content-Type-Options", "nosniff")
+                                self.end_headers()
+                                self.wfile.write(payload)
+                                return
                             if output_format in ("presence-all-compare-map",
                                                  "presence-all-compare-geojson", "presence-all-compare-witness-geojson"):
                                 from .source_pair_changes import (

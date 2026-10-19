@@ -1,0 +1,43 @@
+id: WORK-0143
+title: "Export reproducible offline reporter evidence bundle"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Save one verified local package of selected original reporter gaps, source
+  evidence and separate analytical witness geometry for offline investigation.
+scope:
+  in: ["Original bitemporal two-reporter comparisons", "ZIP SHA256 manifest",
+       "Existing original reports and analytical GIS exports"]
+  out: ["World truth", "New inference engine", "External services",
+        "Saved model mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "ZIP contains selected five existing exports and integrity manifest.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Both temporal axes retain original versus analytic provenance.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Strict validation, deterministic archive and byte-immutable persisted model.", status: IN_PROGRESS}
+depends_on: [WORK-0142]
+requirements: []
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.local_api.create_server, monde.source_pair_changes.source_directory_global_pair_matrix]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Package selected existing source evidence.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test live HTTP and stable offline export on both axes.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}

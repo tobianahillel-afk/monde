@@ -1127,3 +1127,8 @@ by which cutoff(s) contain them. The matrix page provides direct earlier/later
 GIS links. Other formats reject `witness_period`.
 
 Analytical witness features and WKT CSV rows additionally expose the **nearest original-reporter separation change in kilometres** (`reporter_gap_change_nearest_km`), the matrix's `reporter_gap_trend` and `reporting_transition`. Missing comparisons remain JSON `null` / empty CSV cells, never a fabricated zero. These fields classify two original sources' measured gaps across cutoffs; they **do not** establish movement, position truth or a source-observed route. Original Point features and saved snapshots are unchanged.
+
+
+### Portable two-reporter evidence ZIP (WORK-0143)
+
+The local /source-pair selector accepts format=presence-all-compare-bundle for an offline, fixed-name ZIP of the exact selected original matrix JSON/CSV, original Point GeoJSON, and separately identified analytical witness GeoJSON/WKT CSV. Its manifest.json records the two source IDs, bitemporal cutoffs, validated filters, byte sizes and SHA-256 hashes for each exported member. Same immutable snapshot and identical query yields the same ZIP bytes; the existing 2 MB HTTP limit applies. Original observations remain distinct from schematic connectors, which are not ground-truth locations, verified routes or movement. No new service, external library or write endpoint.
