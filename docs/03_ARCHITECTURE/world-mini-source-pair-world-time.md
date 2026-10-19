@@ -1163,3 +1163,27 @@ archive. Someone who changes data and recomputes its manifest can make a
 consistent archive. No verification of independent reporter identity,
 ground truth, or physical movement is implied. Preserve trusted external
 distribution provenance when authenticity is required.
+
+
+### Compare two downloaded verified evidence bundles offline (WORK-0143)
+
+Use the same built-in, dependency-free command after downloading two ZIP
+exports of the **same reporter pair and temporal axis**:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle ./before.zip --compare ./after.zip
+```
+
+The command verifies both archives' manifest checksums and original-versus-
+analytical roles **before** comparing anything. A valid comparison prints
+machine-readable JSON with added, removed, changed and unchanged matrix
+entities, original Point feature additions/removals (preserving duplicate
+reports), changed export filenames, and each archive's source cutoffs.
+Mismatched reporter identities, incompatible axes and corrupt archives fail
+closed (exit 1). Original ZIP files are never extracted or modified.
+
+These results describe **differences between selected exported evidence**,
+not physical movement, a truth update or an authenticated source revision.
+Different filters or temporal cutoffs can alter the exported selection; this
+is flagged separately. All integrity hashes come from the archives
+themselves and retain `authenticity=NOT_ATTESTED`.
