@@ -2546,5 +2546,90 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
+
+    def test_global_presence_geopackage_exports_all_entities_across_cutoffs(self):
+        """One offline GIS layer, with exact original identities across entities."""
+        import sqlite3
+        import struct
+        from tempfile import NamedTemporaryFile
+        query = self.knowledge()
+        status, headers, blob = self.get({
+            **query, "format": "presence-all-gpkg"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/geopackage+sqlite3")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertTrue(blob.startswith(b"SQLite format 3\x00"))
+        earlier = self.world.export_geojson(AT, BEFORE)["features"]
+        later = self.world.export_geojson(AT, AFTER)["features"]
+        original_identities = {
+            (f["properties"]["entity"], f["properties"]["source_id"], f["id"],
+             f["properties"]["evidence_id"], *f["geometry"]["coordinates"])
+            for f in earlier + later
+        }
+        with NamedTemporaryFile(suffix=".gpkg") as f:
+            Path(f.name).write_bytes(blob)
+            with sqlite3.connect(f.name) as db:
+                rows = db.execute(
+                    "SELECT entity,source_id,assertion_id,evidence_id,geom,"
+                    "earlier_visible,later_visible,original_properties_json "
+                    "FROM original_points ORDER BY fid").fetchall()
+                found = set()
+                for entity, source, assertion, evidence, geom, before, after, props in rows:
+                    self.assertEqual(geom[:2], b"GP")
+                    longitude, latitude = struct.unpack("<dd", geom[13:29])
+                    found.add((entity, source, assertion, evidence, longitude, latitude))
+                    data = json.loads(props)
+                    self.assertEqual((entity, source, assertion, evidence),
+                                     (data["entity"], data["source_id"],
+                                      data["monde_original_assertion_id"],
+                                      data["evidence_id"]))
+                    self.assertEqual((before, after),
+                                     (int(data["earlier_visible"]), int(data["later_visible"])))
+                self.assertEqual(found, original_identities)
+                self.assertEqual(len(rows), len(original_identities))
+                coverage = json.loads(db.execute(
+                    "SELECT coverage_json FROM monde_coverage").fetchone()[0])
+                self.assertEqual(coverage["schema"],
+                                 "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1")
+                self.assertEqual(coverage["original_report_count"], len(rows))
+                self.assertEqual(coverage["distinct_entities"],
+                                 len({item[0] for item in original_identities}))
+        self.assertIn(b"Download all selected original Points GeoPackage",
+                      self.get({**query, "format": "table"})[2])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_geopackage_source_presence_filters_and_empty_matches(self):
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+        params = self.knowledge()
+        for source in ("survey-a", "survey-b", "no-such-source"):
+            for presence in ("earlier", "later", "both"):
+                query = {**params, "source_prefix": source,
+                         "presence": presence, "format": "presence-all-gpkg"}
+                status, _, blob = self.get(query)
+                self.assertEqual(status, 200)
+                with NamedTemporaryFile(suffix=".gpkg") as f:
+                    Path(f.name).write_bytes(blob)
+                    with sqlite3.connect(f.name) as db:
+                        rows = db.execute(
+                            "SELECT source_id,earlier_visible,later_visible "
+                            "FROM original_points").fetchall()
+                        for reporter, earlier, later in rows:
+                            self.assertTrue(reporter.startswith(source))
+                            self.assertEqual(
+                                ("both" if earlier and later else
+                                 "earlier" if earlier else "later"), presence)
+                        coverage = json.loads(db.execute(
+                            "SELECT coverage_json FROM monde_coverage").fetchone()[0])
+                        self.assertEqual(coverage["original_report_count"], len(rows))
+        for bad in (
+            {**params, "format": "presence-all-gpkg", "entity": "site-1"},
+            {**params, "format": "presence-all-gpkg", "source": "survey-a"},
+            {**params, "format": "presence-all-gpkg", "presence": "unknown"},
+            {**params, "format": "presence-all-gpkg", "unexpected": "x"},
+        ):
+            self.assertEqual(self.get(bad)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

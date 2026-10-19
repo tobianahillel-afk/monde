@@ -854,6 +854,79 @@ def source_directory_entity_presence_gpkg(world, directory, presence=None):
     import tempfile
 
     geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    return _presence_geojson_to_gpkg(geojson)
+
+
+def source_directory_all_presence_gpkg(world, directory, presence=None):
+    """One offline GIS layer of original source Points across *all* entities.
+
+    Export only the original sources selected by the existing source directory
+    filters. The same assertion at both cutoffs yields ONE geometry carrying
+    explicit earlier/later visibility, never an inferred trajectory or truth.
+    """
+    if (directory.get("schema") != "MONDE_SOURCE_COVERAGE_DIRECTORY_V1" or
+            "entity_focus" in directory):
+        raise ValueError("global source directory required")
+    if presence not in (None, "earlier", "later", "both"):
+        raise ValueError("invalid original report presence filter")
+    sources = {row["source_id"] for row in directory["sources"]}
+    by_identity = {}
+    for period in ("earlier", "later"):
+        cutoff = directory["cutoffs"][period]
+        for original in world.export_geojson(
+                cutoff["world_at"], cutoff["knowledge_at"])["features"]:
+            props = original["properties"]
+            if props["source_id"] not in sources:
+                continue
+            lon, lat = original["geometry"]["coordinates"]
+            identity = (props["entity"], props["source_id"], original["id"],
+                        props["evidence_id"], lon, lat)
+            entry = by_identity.setdefault(
+                identity, {"original": original, "periods": set()})
+            entry["periods"].add(period)
+    features = []
+    for identity, entry in sorted(by_identity.items(),
+                                  key=lambda pair: tuple(map(str, pair[0]))):
+        before = "earlier" in entry["periods"]
+        after = "later" in entry["periods"]
+        classification = ("both" if before and after else
+                          "earlier" if before else "later")
+        if presence is not None and classification != presence:
+            continue
+        original = entry["original"]
+        props = dict(original["properties"])
+        props.update(
+            monde_original_assertion_id=original["id"],
+            earlier_visible=before, later_visible=after,
+            monde_visibility_transition={
+                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                "both": "BOTH_CUTOFFS"}[classification])
+        features.append({
+            "type": "Feature",
+            "id": json.dumps(identity, ensure_ascii=False, separators=(",", ":")),
+            "geometry": original["geometry"], "properties": props,
+        })
+    coverage = {
+        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1",
+        "axis": directory["axis"], "cutoffs": directory["cutoffs"],
+        "selected_sources": len(sources),
+        "original_report_count": len(features),
+        "distinct_entities": len({f["properties"]["entity"] for f in features}),
+        **({key: directory[key] for key in ("source_prefix", "reporting_filter")
+            if key in directory}),
+        **({"presence_filter": presence} if presence is not None else {}),
+        "interpretation": (
+            "Original source Point presence across two cutoffs; not "
+            "inferred truth, movement or a consensus position"),
+    }
+    return _presence_geojson_to_gpkg({
+        "type": "FeatureCollection", "features": features,
+        "monde_source_coverage": coverage,
+    })
+
+
+def _presence_geojson_to_gpkg(geojson):
+    """Shared original-Point GeoPackage writer for entity and global export."""
     features = geojson["features"]
     coordinates = [f["geometry"]["coordinates"] for f in features]
     extents = ((min(p[0] for p in coordinates), min(p[1] for p in coordinates),

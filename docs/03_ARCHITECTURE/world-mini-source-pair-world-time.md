@@ -791,3 +791,19 @@ the complete bitemporal coverage cutoffs and provenance selection. No route,
 trajectory, consensus location, remote data or WorldMini mutation is inferred.
 The file is generated temporarily and returned only through the existing
 loopback-only GET endpoint; `max_response_bytes` is enforced.
+
+
+### Global original Point GeoPackage (WORK-0129 extension)
+
+For a source-directory query without `entity`, select **Download all selected
+original Points GeoPackage** or request `format=presence-all-gpkg`.
+The existing source-directory `source_prefix` and `change` filters select
+reporters, and optional `presence=earlier|later|both` selects the visibility
+of each **original assertion + evidence + coordinates + entity** across the two
+explicit cutoffs. The file contains one `original_points` WGS84 layer, full
+original source properties in `original_properties_json`, and a
+`monde_coverage` provenance record identifying axis, cutoffs, source filters,
+selected reporter count and entity count. It is suitable for offline GIS
+analysis of reports from multiple entities **without implying consensus,
+verified movement or physical events**. Individual entity exports remain
+unchanged. No new endpoint, service, dependency or persisted-state mutation.

@@ -11,12 +11,13 @@ purpose: |
   Export exact original bitemporal Point identities to interoperable OGC
   GeoPackage SQLite for GIS clients, without inventing ground truth.
 scope:
-  in: ["GeoPackage 1.3 WGS84 original Points", "Complete original source metadata", "Bitemporal source/presence filters", "Loopback-only HTTP"]
+  in: ["GeoPackage 1.3 WGS84 original Points", "Complete original source metadata", "Bitemporal source/presence filters", "Global multi-entity GIS export", "Loopback-only HTTP"]
   out: ["Inferred tracks or consensus", "Data mutation", "New service or paid dependency", "Import or editing"]
 acceptance_criteria:
   - {id: AC-1, description: "GeoPackage 1.3 contains one WGS84 Point per unique original source assertion identity.", status: IN_PROGRESS}
   - {id: AC-2, description: "Full source-report properties and both temporal cutoffs survive GIS export.", status: IN_PROGRESS}
   - {id: AC-3, description: "Real loopback HTTP proves parity with presence GeoJSON, source filters, empty evidence and no saved-state mutation.", status: IN_PROGRESS}
+  - {id: AC-4, description: "One global GeoPackage export covers all selected original reporter Points across entities and both cutoffs without double counting.", status: IN_PROGRESS}
 depends_on: [WORK-0128]
 requirements: []
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]
