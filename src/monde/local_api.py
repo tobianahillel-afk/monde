@@ -1240,6 +1240,15 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 str(value["nearest_km"]) + " to " +
                 str(value["farthest_km"]) + " km")
 
+    def original_pair(period):
+        pair = period["nearest_original_pair"]
+        if pair is None:
+            return "—"
+        return " · ".join(
+            escape(source + " assertion " + str(pair[side]["assertion_id"]) +
+                   " (evidence " + str(pair[side]["evidence_id"]) + ")")
+            for side, source in (("source_a", "A"), ("source_b", "B")))
+
     # Existing read-only drill-downs keep both temporal cutoffs, but not the
     # global bbox; entity evidence may legitimately exist outside the viewport.
     retained = {key: args[key] for key in (
@@ -1264,6 +1273,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 "<td>" + str(p["source_b"]["count"]) + " · " +
                 assertions(p["source_b"]) + "</td>",
                 "<td>" + separation(p) + "</td>",
+                "<td>" + original_pair(p) + "</td>",
             ))
         entity = str(item["entity"])
         links = ['<a href="' + drilldown(entity, "presence-table") +
@@ -1353,11 +1363,13 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '</caption><thead><tr><th rowspan="2">Entity</th>'
         '<th rowspan="2">Evidence transition</th>'
         '<th rowspan="2">Gap trend</th>'
-        '<th colspan="4">Earlier</th><th colspan="4">Later</th></tr>'
+        '<th colspan="5">Earlier</th><th colspan="5">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
         '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
+        '<th>Nearest original report pair</th>'
         '<th>Status</th><th>Source A assertions</th>'
-        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th></tr>'
+        '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
+        '<th>Nearest original report pair</th></tr>'
         '</thead><tbody>' + "".join(body) + '</tbody></table>'
         '<p>Matching entities: ' + str(doc["total_entities"]) +
         ' of ' + str(doc["total_entities_unfiltered"]) +

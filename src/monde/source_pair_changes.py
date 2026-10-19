@@ -43,6 +43,49 @@ def _measure(left, right):
             "farthest_km": round(max(values), 3)}
 
 
+
+def _measure_with_original_pair(left, right):
+    """Identify the two *original* reports behind the shortest Point gap.
+
+    Do not collapse identical coordinates: distinct assertions remain distinct.
+    Equal-distance pairs are chosen deterministically by original IDs and
+    coordinates. A source measurement is not ground truth or actual motion.
+    """
+    if not left or not right:
+        return None, None
+
+    def witness(feature):
+        props = feature["properties"]
+        return {
+            "assertion_id": props["monde_original_assertion_id"],
+            "evidence_id": props["evidence_id"],
+            "coordinates": feature["geometry"]["coordinates"],
+        }
+
+    def stable_key(a, b):
+        return tuple(
+            json.dumps(value, ensure_ascii=False, sort_keys=True)
+            for feature in (a, b)
+            for value in (witness(feature)["assertion_id"],
+                          witness(feature)["evidence_id"],
+                          witness(feature)["coordinates"]))
+
+    nearest = None
+    largest = 0.0
+    for a in left:
+        for b in right:
+            distance = _distance(a["geometry"]["coordinates"],
+                                 b["geometry"]["coordinates"])
+            key = stable_key(a, b)
+            if nearest is None or (distance, key) < nearest[:2]:
+                nearest = (distance, key, a, b)
+            largest = max(largest, distance)
+    distance, _, a, b = nearest
+    return ({"nearest_km": round(distance, 3),
+             "farthest_km": round(largest, 3)},
+            {"distance_km": round(distance, 3),
+             "source_a": witness(a), "source_b": witness(b)})
+
 def _source_pair_rows(world, source_a, source_b, cutoffs):
     """Compare original source Points at two explicitly chosen bitemporal cuts."""
     snapshots = []
@@ -1008,10 +1051,12 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                     "coordinates": [
                         f["geometry"]["coordinates"] for f in features],
                 }
+            measured, nearest_pair = _measure_with_original_pair(left, right)
             row[period] = {"status": status,
                            "source_a": original_identity(left),
                            "source_b": original_identity(right),
-                           "separation_km": _measure(left, right)}
+                           "separation_km": measured,
+                           "nearest_original_pair": nearest_pair}
         before = row["earlier"]["separation_km"]
         after = row["later"]["separation_km"]
         row["separation_change_km"] = (
@@ -1151,13 +1196,37 @@ def source_directory_global_pair_transition_geojson(
     categories = {row["entity"]: row
                   for row in matrix["entities"]
                   if focus_entity is None or row["entity"] == focus_entity}
+    def evidence_periods(feature):
+        props = feature["properties"]
+        row = categories[props["entity"]]
+        marked = []
+        for period in ("earlier", "later"):
+            pair = row[period]["nearest_original_pair"]
+            if pair is None or not props[period + "_visible"]:
+                continue
+            side = ("source_a" if props["source_id"] == sources[0]
+                    else "source_b")
+            original = pair[side]
+            if (props["monde_original_assertion_id"] == original["assertion_id"]
+                    and props["evidence_id"] == original["evidence_id"]
+                    and feature["geometry"]["coordinates"] == original["coordinates"]):
+                marked.append(period)
+        return marked
+
+    def enrich(feature):
+        props = feature["properties"]
+        marked = evidence_periods(feature)
+        return {**feature, "properties": {
+            **props,
+            "monde_reporting_transition":
+                categories[props["entity"]]["reporting_transition"],
+            "monde_reporter_gap_trend":
+                categories[props["entity"]]["reporter_gap_trend"],
+            **({"monde_nearest_original_pair_periods": marked}
+               if marked else {})}}
+
     geojson["features"] = [
-        {**feature, "properties": {**feature["properties"],
-         "monde_reporting_transition":
-             categories[feature["properties"]["entity"]]["reporting_transition"],
-         "monde_reporter_gap_trend":
-             categories[feature["properties"]["entity"]]["reporter_gap_trend"]}}
-        for feature in geojson["features"]
+        enrich(feature) for feature in geojson["features"]
         if feature["properties"]["entity"] in categories]
     count = len(geojson["features"])
     coverage = geojson["monde_source_coverage"]
@@ -1219,6 +1288,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
                      "nearest_reporter_separation_km", "farthest_reporter_separation_km",
+                     "nearest_source_a_original_json", "nearest_source_b_original_json",
                      "world_at", "knowledge_at"))
     for item in matrix["entities"]:
         for period in ("earlier", "later"):
@@ -1234,6 +1304,10 @@ def source_directory_global_pair_matrix_csv(matrix):
                              *(("" if row.get("separation_km") is None
                                  else row["separation_km"][kind])
                                for kind in ("nearest_km", "farthest_km")),
+                             *(json.dumps(row["nearest_original_pair"][side],
+                                          ensure_ascii=False, separators=(",", ":"))
+                               if row.get("nearest_original_pair") is not None else ""
+                               for side in ("source_a", "source_b")),
                              cutoff["world_at"], cutoff["knowledge_at"]))
     return output.getvalue()
 

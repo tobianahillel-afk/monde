@@ -1015,3 +1015,21 @@ A native matrix form selects either or both cutoffs. All output formats retain
 original source/assertion/evidence IDs and both temporal axes. Neither
 verified location, source accuracy, physical motion nor consensus is inferred.
 No new service, dependency or modification of saved WorldMini is introduced.
+
+## Trace the original reports behind each nearest reporter gap (WORK-0138)
+
+The existing two-reporter matrix now includes `nearest_original_pair` for
+**each** earlier/later cutoff. The field is `null` unless both original
+reporters have visible Points at that cutoff. Otherwise it contains the
+approximate nearest separation (`distance_km`) and the exact source-A and
+source-B assertion IDs, evidence IDs and WGS84 original coordinates. Ties use
+stable original report identities; no reported Point is averaged or moved.
+
+The accessible local reporter-matrix table displays the paired original IDs;
+the existing CSV includes two JSON-object columns, one for each of the paired
+original reports. The existing filtered original GeoJSON and local map preserve
+all source Points, additionally marking each exact selected endpoint with
+`monde_nearest_original_pair_periods` (earlier, later, or both). The
+previous numeric distances, source selection, gap filters and cutoff logic
+are unchanged. A highlighted pair explains a **reported separation**, not a
+verified location, source reliability, agreement or physical movement.
