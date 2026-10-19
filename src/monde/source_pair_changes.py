@@ -1160,7 +1160,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
-                             *(("" if row["separation_km"] is None
+                             *(("" if row.get("separation_km") is None
                                  else row["separation_km"][kind])
                                for kind in ("nearest_km", "farthest_km")),
                              cutoff["world_at"], cutoff["knowledge_at"]))
