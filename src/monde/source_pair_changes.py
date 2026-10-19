@@ -962,7 +962,8 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 
 def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
-                                        transition=None, gap_trend=None):
+                                        transition=None, gap_trend=None,
+                                        min_gap_km=None, gap_order=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1035,7 +1036,41 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
 
 
 
-    return filter_reporter_matrix_transitions(matrix, transition, gap_trend)
+    matrix = filter_reporter_matrix_transitions(matrix, transition, gap_trend)
+    if min_gap_km is None and gap_order is None:
+        return matrix
+    if min_gap_km is not None and (
+            isinstance(min_gap_km, bool) or
+            not isinstance(min_gap_km, (int, float)) or
+            not isfinite(min_gap_km) or not 0 <= min_gap_km <= 20015):
+        raise ValueError("invalid reporter gap threshold")
+    if gap_order not in (None, "largest"):
+        raise ValueError("invalid reporter gap order")
+    def gap(row):
+        values = [row[p]["separation_km"]["nearest_km"]
+                  for p in ("earlier", "later")
+                  if row[p]["separation_km"] is not None]
+        return max(values) if values else None
+    before = len(matrix["entities"])
+    rows = [r for r in matrix["entities"] if min_gap_km is None or
+            (gap(r) is not None and gap(r) >= min_gap_km)]
+    if gap_order == "largest":
+        rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
+    counts = {p: {k: 0 for k in ("BOTH_REPORTED", "ONLY_SOURCE_A",
+                                "ONLY_SOURCE_B")} for p in ("earlier", "later")}
+    for row in rows:
+        for period in ("earlier", "later"):
+            status = row[period]["status"]
+            if status in counts[period]:
+                counts[period][status] += 1
+    return {**matrix, "entities": rows, "total_entities": len(rows),
+            "per_period": counts, "gap_selection": {
+                "minimum_nearest_km": min_gap_km,
+                "order": gap_order or "entity",
+                "entities_before_gap_filter": before,
+                "matching_entities": len(rows),
+                "interpretation": "Original reporter Point gaps at either "
+                                  "cutoff, not truth or physical movement."}}
 
 
 def filter_reporter_matrix_transitions(matrix, transition=None, gap_trend=None):
