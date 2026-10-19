@@ -3580,6 +3580,26 @@ class SourceDirectoryTests(unittest.TestCase):
                                for row in matrix["entities"]
                                if row["entity"] == props["entity"])
                     self.assertEqual(props.pop("monde_reporter_gap_trend"), gap)
+                    marked = props.pop("monde_nearest_original_pair_periods", [])
+                    self.assertTrue(set(marked) <= {"earlier", "later"})
+                    row = next(r for r in matrix["entities"]
+                               if r["entity"] == props["entity"])
+                    expected_periods = []
+                    for period in ("earlier", "later"):
+                        pair = row[period]["nearest_original_pair"]
+                        if pair is None or not props[period + "_visible"]:
+                            continue
+                        side = ("source_a" if props["source_id"] ==
+                                matrix["source_a"] else "source_b")
+                        original_pair = pair[side]
+                        if (original_pair["assertion_id"] ==
+                                props["monde_original_assertion_id"]
+                                and original_pair["evidence_id"] ==
+                                props["evidence_id"]
+                                and original_pair["coordinates"] ==
+                                found["geometry"]["coordinates"]):
+                            expected_periods.append(period)
+                    self.assertEqual(marked, expected_periods)
                     self.assertEqual(props, prior["properties"])
                     self.assertEqual(found["geometry"], prior["geometry"])
                 coverage = actual["monde_source_coverage"]

@@ -1306,7 +1306,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                                for kind in ("nearest_km", "farthest_km")),
                              *(json.dumps(row["nearest_original_pair"][side],
                                           ensure_ascii=False, separators=(",", ":"))
-                               if row["nearest_original_pair"] is not None else ""
+                               if row.get("nearest_original_pair") is not None else ""
                                for side in ("source_a", "source_b")),
                              cutoff["world_at"], cutoff["knowledge_at"]))
     return output.getvalue()
