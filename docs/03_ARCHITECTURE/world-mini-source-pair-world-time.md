@@ -1108,3 +1108,8 @@ After selecting `gap_crossing_km=N`, `gap_order=largest-margin` sorts qualifying
 
 
 For threshold-crossing selections, each comparable entity now exposes `reporter_gap_crossing_margin_km` in JSON, CSV and the native evidence table. Filtered original GeoJSON carries the same quantity as `monde_reporter_gap_crossing_margin_km`. This nonnegative distance measures how far the *later* nearest original reporter gap lies beyond the crossed side of the chosen threshold—not total earlier/later change, verified truth or physical movement. Without a crossing threshold this quantity is omitted; both world- and knowledge-time axes use identical semantics.
+
+
+### Analytical nearest original-report witness lines (WORK-0142)
+
+The existing two-reporter matrix now offers `format=presence-all-compare-witness-geojson` as an explicit opt-in GIS export. It returns the **unchanged original Point features**, plus one clearly marked schematic LineString (or antimeridian-split MultiLineString) for each entity/cutoff with jointly reported Points. Every analytical line cites the **exact nearest original assertion and evidence ID of each reporter**, associated bitemporal cutoff, computed report separation and any selected crossing margin. Analytical features carry `monde_geometry_role=ANALYTICAL_REPORTER_GAP_WITNESS`, `monde_original_observation=false`, and are **not** physical tracks, observed paths, a location consensus, or additional original reports. The existing original-only GeoJSON, maps, JSON, CSV and saved world remain unchanged. Filtering and focus reuse the existing source-pair selection.

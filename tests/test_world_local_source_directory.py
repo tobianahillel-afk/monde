@@ -4562,5 +4562,105 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
+    def test_original_reporter_witness_gis_has_strict_analytic_provenance(self):
+        """Real HTTP, both temporal axes: never mistake a measurement for a source."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            q = {**base, "compare_a": "survey-a", "compare_b": "survey-b",
+                 "gap_crossing_km": "1"}
+            code, headers, raw = self.get(
+                {**q, "format": "presence-all-compare-witness-geojson"})
+            self.assertEqual(code, 200)
+            self.assertEqual(headers["Cache-Control"], "no-store")
+            doc = json.loads(raw)
+            matrix = json.loads(self.get({
+                **q, "format": "presence-all-compare-json"})[2])
+            original = json.loads(self.get({
+                **q, "format": "presence-all-compare-geojson"})[2])
+            points = [f for f in doc["features"] if
+                      f["properties"].get("monde_geometry_role") !=
+                      "ANALYTICAL_REPORTER_GAP_WITNESS"]
+            lines = [f for f in doc["features"] if
+                     f["properties"].get("monde_geometry_role") ==
+                     "ANALYTICAL_REPORTER_GAP_WITNESS"]
+            self.assertEqual(points, original["features"])
+            expected = {
+                (row["entity"], period): row[period]["nearest_original_pair"]
+                for row in matrix["entities"]
+                for period in ("earlier", "later")
+                if row[period]["nearest_original_pair"] is not None}
+            self.assertEqual(
+                {(f["properties"]["entity"], f["properties"]["period"])
+                 for f in lines}, set(expected))
+            self.assertEqual(
+                doc["monde_source_coverage"]["analytical_witness_count"],
+                len(lines))
+            self.assertEqual(
+                doc["monde_source_coverage"]["original_report_count"],
+                original["monde_source_coverage"]["original_report_count"])
+            for f in lines:
+                p = f["properties"]
+                pair = expected[p["entity"], p["period"]]
+                self.assertFalse(p["monde_original_observation"])
+                self.assertTrue(p["monde_not_a_route_or_movement"])
+                self.assertIn(f["geometry"]["type"],
+                              ("LineString", "MultiLineString"))
+                self.assertEqual(p["distance_km"], pair["distance_km"])
+                self.assertEqual(p["source_a_assertion_id"],
+                                 pair["source_a"]["assertion_id"])
+                self.assertEqual(p["source_b_evidence_id"],
+                                 pair["source_b"]["evidence_id"])
+                self.assertIn("reporter_gap_crossing_margin_km", p)
+            table = self.get({**q, "format": "presence-all-compare-table"})[2]
+            self.assertIn(b"presence-all-compare-witness-geojson", table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_witness_export_rejects_missing_pair_and_preserves_filter(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b", "gap_crossing_km": "1",
+                 "format": "presence-all-compare-witness-geojson"}
+        self.assertEqual(self.get({
+            **{k: v for k, v in query.items() if not k.startswith("compare_")}}
+            )[0], 400)
+        limited = json.loads(self.get({
+            **query, "min_crossing_margin_km": "20015"})[2])
+        self.assertFalse(limited["features"])
+        self.assertEqual(limited["monde_source_coverage"][
+            "analytical_witness_count"], 0)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_analytic_reporter_witness_splits_dateline_without_global_line(self):
+        """GIS witness is drawn along the short map seam, not across the globe."""
+        from monde.source_pair_changes import source_directory_global_pair_witness_geojson
+        left = {"assertion_id": "A", "evidence_id": "EA",
+                "coordinates": [179.0, 10.0]}
+        right = {"assertion_id": "B", "evidence_id": "EB",
+                 "coordinates": [-179.0, 12.0]}
+        matrix = {
+            "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
+            "source_a": "a", "source_b": "b",
+            "cutoffs": {
+                "earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                "later": {"world_at": AT, "knowledge_at": AFTER}},
+            "entities": [{"entity": "E",
+                "earlier": {"nearest_original_pair": {"distance_km": 219.0,
+                    "source_a": left, "source_b": right}},
+                "later": {"nearest_original_pair": None}}]}
+        # No source APIs required: inject already selected, original-only export.
+        from unittest.mock import patch
+        original = {"type": "FeatureCollection", "features": [],
+                    "monde_source_coverage": {"original_report_count": 0}}
+        with patch("monde.source_pair_changes.source_directory_global_pair_transition_geojson",
+                   return_value=original):
+            got = source_directory_global_pair_witness_geojson(
+                self.world, {}, matrix)
+        feature = got["features"][0]
+        self.assertEqual(feature["geometry"]["type"], "MultiLineString")
+        parts = feature["geometry"]["coordinates"]
+        self.assertEqual(parts[0], [[179.0, 10.0], [180, 11.0]])
+        self.assertEqual(parts[1], [[-180, 11.0], [-179.0, 12.0]])
+
+
 if __name__ == "__main__":
     unittest.main()

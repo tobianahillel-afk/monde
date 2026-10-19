@@ -1348,6 +1348,74 @@ def source_directory_global_pair_transition_geojson(
             display["bbox"] = _source_display_bbox(geojson["features"])
     return geojson
 
+def source_directory_global_pair_witness_geojson(
+        world, directory, matrix, presence=None, bbox=None, for_map=False,
+        focus_entity=None):
+    """Export original Points plus explicitly analytical nearest-pair segments.
+
+    Segments are *not* source observations, verified routes, movement, or
+    geodesic tracks. Each is derived from the actual nearest original
+    assertions and retained only for jointly reported entities/periods.
+    """
+    if for_map:
+        raise ValueError("analytical lines are only available as GIS export")
+    output = source_directory_global_pair_transition_geojson(
+        world, directory, matrix, presence, bbox, False, focus_entity)
+    analytical = []
+    for row in matrix["entities"]:
+        if focus_entity is not None and row["entity"] != focus_entity:
+            continue
+        for period in ("earlier", "later"):
+            nearest = row[period]["nearest_original_pair"]
+            if nearest is None:
+                continue
+            aa, bb = nearest["source_a"], nearest["source_b"]
+            a, b = aa["coordinates"], bb["coordinates"]
+            if abs(b[0] - a[0]) <= 180:
+                geometry = {"type": "LineString", "coordinates": [a, b]}
+            else:
+                # Schematic dateline split, never a claim of a real path.
+                crossing = 180 if b[0] < a[0] else -180
+                unwrapped_b = b[0] + (360 if crossing == 180 else -360)
+                fraction = (crossing - a[0]) / (unwrapped_b - a[0])
+                latitude = a[1] + (b[1] - a[1]) * fraction
+                geometry = {
+                    "type": "MultiLineString",
+                    "coordinates": [[a, [crossing, latitude]],
+                                    [[-crossing, latitude], b]]}
+            cutoff = matrix["cutoffs"][period]
+            analytical.append({
+                "type": "Feature", "geometry": geometry,
+                "properties": {
+                    "entity": row["entity"],
+                    "monde_geometry_role": "ANALYTICAL_REPORTER_GAP_WITNESS",
+                    "monde_original_observation": False,
+                    "monde_not_a_route_or_movement": True,
+                    "period": period,
+                    "world_at": cutoff["world_at"],
+                    "knowledge_at": cutoff["knowledge_at"],
+                    "distance_km": nearest["distance_km"],
+                    "source_a": matrix["source_a"],
+                    "source_b": matrix["source_b"],
+                    "source_a_assertion_id": aa["assertion_id"],
+                    "source_b_assertion_id": bb["assertion_id"],
+                    "source_a_evidence_id": aa["evidence_id"],
+                    "source_b_evidence_id": bb["evidence_id"],
+                    **({"reporter_gap_crossing": row["reporter_gap_crossing"],
+                        "reporter_gap_crossing_margin_km":
+                            row["reporter_gap_crossing_margin_km"]}
+                       if "reporter_gap_crossing" in row else {}),
+                }})
+    output["features"].extend(analytical)
+    output["monde_source_coverage"]["analytical_witness_count"] = len(analytical)
+    output["monde_source_coverage"]["analytical_witness_semantics"] = (
+        "Schematic straight connector between original nearest source reports "
+        "at each cutoff; NOT a source-observed geometry, route, movement, "
+        "position consensus, or geodesic path. Original report counts exclude "
+        "these analytical features.")
+    return output
+
+
 def source_directory_global_pair_matrix_csv(matrix):
     """Export exact reporter-presence matrix rows without inventing agreement.
 
