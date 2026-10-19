@@ -2631,5 +2631,53 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(self.get(bad)[0], 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_presence_geopackage_has_queryable_offline_spatial_index(self):
+        """RTree covers exactly the original feature FIDs, including empty files."""
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+
+        for query in (
+            {**self.knowledge(), "entity": "site-1",
+             "format": "presence-gpkg"},
+            {**self.knowledge(), "format": "presence-all-gpkg"},
+            {**self.knowledge(), "entity": "nonexistent",
+             "format": "presence-gpkg"},
+        ):
+            status, _, blob = self.get(query)
+            self.assertEqual(status, 200)
+            with NamedTemporaryFile(suffix=".gpkg") as file:
+                Path(file.name).write_bytes(blob)
+                with sqlite3.connect(file.name) as db:
+                    self.assertEqual(
+                        db.execute("SELECT extension_name, scope FROM gpkg_extensions "
+                                   "WHERE table_name='original_points' "
+                                   "AND column_name='geom'").fetchall(),
+                        [("gpkg_rtree_index", "read-write")])
+                    points = db.execute(
+                        "SELECT fid,geom FROM original_points ORDER BY fid").fetchall()
+                    indexed = db.execute(
+                        "SELECT id,minx,maxx,miny,maxy "
+                        "FROM rtree_original_points_geom ORDER BY id").fetchall()
+                    self.assertEqual([row[0] for row in indexed],
+                                     [row[0] for row in points])
+                    self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0],
+                                     "ok")
+                    import struct
+                    for (fid, geom), (index_id, west, east, south, north) in zip(
+                            points, indexed):
+                        lon, lat = struct.unpack("<dd", geom[13:29])
+                        self.assertEqual(fid, index_id)
+                        self.assertLessEqual(west, lon)
+                        self.assertGreaterEqual(east, lon)
+                        self.assertLessEqual(south, lat)
+                        self.assertGreaterEqual(north, lat)
+                        hits = db.execute(
+                            "SELECT id FROM rtree_original_points_geom "
+                            "WHERE minx<=? AND maxx>=? AND miny<=? AND maxy>=?",
+                            (lon + 0.001, lon - 0.001,
+                             lat + 0.001, lat - 0.001)).fetchall()
+                        self.assertIn((fid,), hits)
+
 if __name__ == "__main__":
     unittest.main()

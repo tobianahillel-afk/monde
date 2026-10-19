@@ -807,3 +807,17 @@ selected reporter count and entity count. It is suitable for offline GIS
 analysis of reports from multiple entities **without implying consensus,
 verified movement or physical events**. Individual entity exports remain
 unchanged. No new endpoint, service, dependency or persisted-state mutation.
+
+## Spatially indexed offline GeoPackage — WORK-0129
+
+Both individual-entity and global original Point presence exports now include a
+standard `gpkg_rtree_index` of `original_points.geom` using the original
+WGS84 coordinates. GIS readers can restrict a viewport through the
+`rtree_original_points_geom` table instead of scanning all original
+observations. The index contains one entry per existing feature identity and
+remains empty for a no-evidence export. It does not alter evidence provenance,
+time visibility, coordinate values or saved MONDE state.
+
+The downloaded GeoPackage is an **immutable evidence snapshot**; modifying its
+geometries in third-party tools requires rebuilding the spatial index. MONDE
+does not offer an edit or write-back path.

@@ -969,7 +969,22 @@ def _presence_geojson_to_gpkg(geojson):
                   id INTEGER PRIMARY KEY CHECK(id=1),
                   coverage_json TEXT NOT NULL
                 );
+                CREATE TABLE gpkg_extensions (
+                  table_name TEXT, column_name TEXT,
+                  extension_name TEXT NOT NULL, definition TEXT NOT NULL,
+                  scope TEXT NOT NULL,
+                  UNIQUE (table_name, column_name, extension_name)
+                );
+                CREATE VIRTUAL TABLE rtree_original_points_geom
+                  USING rtree(id, minx, maxx, miny, maxy);
             """)
+            # This is an immutable, read-only export. The RTree indexes the
+            # original geometry so offline GIS clients can query viewports
+            # without scanning the complete feature layer.
+            db.execute("INSERT INTO gpkg_extensions VALUES (?,?,?,?,?)",
+                       ("original_points", "geom", "gpkg_rtree_index",
+                        "http://www.geopackage.org/spec/#extension_rtree",
+                        "read-write"))
             db.executemany("INSERT INTO gpkg_spatial_ref_sys VALUES (?,?,?,?,?,?)", [
                 ("Undefined Cartesian", -1, "NONE", -1, "undefined", "undefined"),
                 ("Undefined geographic", 0, "NONE", 0, "undefined", "undefined"),
@@ -994,7 +1009,7 @@ def _presence_geojson_to_gpkg(geojson):
                 # GP header: little-endian, no envelope, EPSG:4326; then WKB Point.
                 geom = struct.pack("<2sBBI", b"GP", 0, 1, 4326) + struct.pack(
                     "<BIdd", 1, 1, lon, lat)
-                db.execute("INSERT INTO original_points "
+                inserted = db.execute("INSERT INTO original_points "
                            "(feature_id,entity,source_id,assertion_id,evidence_id,"
                            "earlier_visible,later_visible,visibility_transition,"
                            "original_properties_json,geom) VALUES (?,?,?,?,?,?,?,?,?,?)",
@@ -1004,6 +1019,8 @@ def _presence_geojson_to_gpkg(geojson):
                             p["monde_visibility_transition"], json.dumps(
                                 p, ensure_ascii=False, sort_keys=True,
                                 separators=(",", ":"), allow_nan=False), geom))
+                db.execute("INSERT INTO rtree_original_points_geom VALUES (?,?,?,?,?)",
+                           (inserted.lastrowid, lon, lon, lat, lat))
             db.commit()
         return target.read_bytes()
 
