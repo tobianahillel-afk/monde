@@ -4505,8 +4505,10 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertGreaterEqual(row["reporter_gap_crossing_margin_km"], 0)
             csv_doc = self.get({**q, "format": "presence-all-compare-csv"})[2]
             csv_rows = list(csv.DictReader(io.StringIO(csv_doc.decode("utf-8"))))
-            self.assertEqual([r["entity"] for r in csv_rows],
-                             [r["entity"] for r in rows])
+            self.assertEqual(
+                sorted((r["entity"], r["period"]) for r in csv_rows),
+                sorted((row["entity"], period) for row in rows
+                       for period in ("earlier", "later")))
             for item in csv_rows:
                 original = next(row for row in rows
                                 if row["entity"] == item["entity"])
