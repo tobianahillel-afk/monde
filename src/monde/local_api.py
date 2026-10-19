@@ -1268,7 +1268,8 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 links.append('<a href="' + drilldown(
                     entity, "presence-map", source) + '">' + label + '</a>')
         body.append('<tr><th scope="row">' + escape(entity) + ' · ' +
-                    ' · '.join(links) + "</th>" +
+                    ' · '.join(links) + "</th><td>" +
+                    escape(item["reporting_transition"]) + "</td>" +
                     "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def transition_link(value, text):
@@ -1717,8 +1718,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
                     cells.append("<td>0</td>")
             summary_rows.append('<tr><th scope="row">' +
                                 escape(row["source_id"]) + "</th>" +
-                                "<td>" + escape(item["reporting_transition"]) + "</td>" +
-                     "".join(cells) + "</tr>")
+                                "".join(cells) + "</tr>")
         reporter_presence = (
             '<section aria-label="Original report presence by reporter">'
             "<h2>Original Point report presence by reporter</h2>"
