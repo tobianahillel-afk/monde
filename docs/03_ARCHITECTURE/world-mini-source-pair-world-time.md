@@ -1136,3 +1136,6 @@ The local /source-pair selector accepts format=presence-all-compare-bundle for a
 ## Portable offline reporter evidence index (WORK-0143)
 
 The existing `presence-all-compare-bundle` ZIP now includes an extracted `index.html` offline report. Open it after unzipping: it shows the exact selected entity matrix, reporter IDs, temporal axis/cutoffs, original reporting presence and derived nearest-point gaps, with links to the unchanged JSON/CSV/GeoJSON artifacts and SHA-256 manifest. Values from original sources are escaped as text; the report does not require JavaScript, a local MONDE server or external assets. Original observations and derived witness geometry remain explicitly distinguished; neither implies ground truth or movement.
+
+
+The extracted static report also includes expandable **per-entity original evidence**, retaining each reporter's original assertion and evidence IDs and reported Point longitude/latitude at the earlier and later cutoffs. Surviving assertions appear under both cutoffs, but do not imply two captures or observed physical movement. All names, IDs and coordinates are HTML-escaped inert text; offline viewing needs no scripts or external resources. The ZIP's original exports, SHA-256 manifest, immutability and deterministic ordering are unchanged.

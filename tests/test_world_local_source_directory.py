@@ -4926,7 +4926,23 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn("Reporter A: <strong>survey-a</strong>", report)
                 self.assertIn("reporter B: <strong>survey-b</strong>", report)
                 self.assertIn("<table>", report)
-                if not json.loads(archive.read("matrix.json"))["entities"]:
+                self.assertIn("Original evidence by selected entity", report)
+                from html import escape as html_escape
+                original_matrix = json.loads(archive.read("matrix.json"))
+                for row in original_matrix["entities"]:
+                    self.assertIn(html_escape(row["entity"], quote=True), report)
+                    for period in ("earlier", "later"):
+                        for side in ("source_a", "source_b"):
+                            source = row[period][side]
+                            for assertion, evidence, point in zip(
+                                    source["assertion_ids"],
+                                    source["evidence_ids"],
+                                    source["coordinates"]):
+                                self.assertIn(html_escape(str(assertion), quote=True), report)
+                                self.assertIn(html_escape(str(evidence), quote=True), report)
+                                self.assertIn(html_escape(json.dumps(
+                                    point, ensure_ascii=False), quote=True), report)
+                if not original_matrix["entities"]:
                     self.assertIn("No entities match all selected comparison filters", report)
                 self.assertIn("UNKNOWN", report)
                 self.assertIn('href="original-points.geojson"', report)
@@ -4982,9 +4998,21 @@ class SourceDirectoryTests(unittest.TestCase):
             "total_entities": 1, "total_original_reports": 1,
             "entities": [{"entity": entity,
                           "earlier": {"status": "ONLY_SOURCE_A",
-                                      "separation_km": None},
+                                      "separation_km": None,
+                                      "source_a": {"assertion_ids": ["<bad-assertion>"],
+                                                   "evidence_ids": ['"onerror=1'],
+                                                   "coordinates": [[1, 2]]},
+                                      "source_b": {"assertion_ids": [],
+                                                   "evidence_ids": [],
+                                                   "coordinates": []}},
                           "later": {"status": "BOTH_REPORTED",
-                                    "separation_km": {"nearest_km": 1.25}},
+                                    "separation_km": {"nearest_km": 1.25},
+                                    "source_a": {"assertion_ids": ["<bad-assertion>"],
+                                                 "evidence_ids": ['"onerror=1'],
+                                                 "coordinates": [[1, 2]]},
+                                    "source_b": {"assertion_ids": ["a2"],
+                                                 "evidence_ids": ["ev-2"],
+                                                 "coordinates": [[3, 4]]}},
                           "reporting_transition": "REPORTERS_CHANGED",
                           "reporter_gap_trend": "UNKNOWN"}],
         }
@@ -4997,6 +5025,12 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertIn("1.25 km", html)
         self.assertIn("<td>UNKNOWN</td>", html)
         self.assertEqual(html.count("<tr>"), 2)
+        self.assertEqual(html.count("<details>"), 1)
+        self.assertIn("&lt;bad-assertion&gt;", html)
+        self.assertIn("&quot;onerror=1", html)
+        self.assertIn("original Point [lon, lat] [1, 2]", html)
+        self.assertIn("Later original source Point reports", html)
+        self.assertNotIn("<bad-assertion>", html)
 
     def test_original_reporter_evidence_zip_rejects_invalid_combinations(self):
         q = {**self.knowledge(), "compare_a": "survey-a",

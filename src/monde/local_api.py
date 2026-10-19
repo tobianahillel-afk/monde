@@ -1261,6 +1261,38 @@ def _reporter_evidence_offline_html(matrix: dict) -> bytes:
                     "</td><td>" + cell(report["reporting_transition"]) +
                     "</td><td>" + cell(report["reporter_gap_trend"]) +
                     "</td></tr>")
+    # Expand the *original* source observations for offline inspection.
+    # Repeated IDs across cutoffs are the same surviving evidence, not
+    # independently acquired new Points or a measured physical trajectory.
+    evidence_details = []
+    for report in matrix["entities"]:
+        period_sections = []
+        for period in ("earlier", "later"):
+            original_items = []
+            for side, reporter in (("source_a", matrix["source_a"]),
+                                   ("source_b", matrix["source_b"])):
+                observations = report[period][side]
+                for assertion, evidence, point in zip(
+                        observations["assertion_ids"],
+                        observations["evidence_ids"],
+                        observations["coordinates"]):
+                    original_items.append(
+                        "<li><strong>Reporter " + cell(reporter) +
+                        "</strong> — assertion " + cell(assertion) +
+                        "; evidence " + cell(evidence) +
+                        "; original Point [lon, lat] " +
+                        cell(json.dumps(point, ensure_ascii=False)) + "</li>")
+            period_sections.append(
+                "<section><h4>" + period.capitalize() +
+                " original source Point reports</h4>" +
+                ("<ul>" + "".join(original_items) + "</ul>"
+                 if original_items else
+                 "<p>UNKNOWN — neither reporter has a selected original "
+                 "Point at this cutoff.</p>") + "</section>")
+        evidence_details.append(
+            "<details><summary>" + cell(report["entity"]) +
+            " — inspect original reports</summary>" +
+            "".join(period_sections) + "</details>")
     page = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta http-equiv="Content-Security-Policy" '
@@ -1293,6 +1325,8 @@ def _reporter_evidence_offline_html(matrix: dict) -> bytes:
         '<th scope="col">Later gap</th><th scope="col">Transition</th>'
         '<th scope="col">Gap trend</th></tr></thead><tbody>' +
         "".join(rows) + '</tbody></table>' +
+        '<h2>Original evidence by selected entity</h2>' +
+        "".join(evidence_details) +
         ('<p>No entities match all selected comparison filters. '
          'Original Point observations may still be present in the '
          'source data files.</p>' if not rows else '') +
