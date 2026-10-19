@@ -1406,9 +1406,9 @@ def source_directory_global_pair_witness_geojson(
                     # distance travelled by an entity or a reporter.
                     "reporter_gap_change_nearest_km": (
                         row["separation_change_km"]["nearest_km"]
-                        if row["separation_change_km"] is not None else None),
-                    "reporter_gap_trend": row["reporter_gap_trend"],
-                    "reporting_transition": row["reporting_transition"],
+                        if row.get("separation_change_km") is not None else None),
+                    "reporter_gap_trend": row.get("reporter_gap_trend", "UNKNOWN"),
+                    "reporting_transition": row.get("reporting_transition", "UNKNOWN"),
                     "source_a": matrix["source_a"],
                     "source_b": matrix["source_b"],
                     "source_a_assertion_id": aa["assertion_id"],
@@ -1469,9 +1469,10 @@ def source_directory_global_pair_witness_csv(geojson):
                          safe(p["source_a_assertion_id"]), safe(p["source_a_evidence_id"]),
                          safe(p["source_b_assertion_id"]), safe(p["source_b_evidence_id"]),
                          p["distance_km"],
-                         (p["reporter_gap_change_nearest_km"]
-                          if p["reporter_gap_change_nearest_km"] is not None else ""),
-                         p["reporter_gap_trend"], p["reporting_transition"],
+                         (p.get("reporter_gap_change_nearest_km")
+                          if p.get("reporter_gap_change_nearest_km") is not None else ""),
+                         p.get("reporter_gap_trend", "UNKNOWN"),
+                         p.get("reporting_transition", "UNKNOWN"),
                          p.get("reporter_gap_crossing", ""),
                          p.get("reporter_gap_crossing_margin_km", ""),
                          wkt(feature["geometry"]), "false",
