@@ -247,8 +247,10 @@ def main(argv=None):
     selectors.add_argument("--inspect-changed", action="store_true",
                            help="Inspect every changed matrix row or original Point report")
     args = parser.parse_args(argv)
-    if args.compare is None and (args.entity is not None or args.inspect_changed):
-        parser.error("--entity and --inspect-changed require --compare")
+    if args.entity is not None and args.compare is None:
+        parser.error("--entity requires --compare")
+    if args.inspect_changed and args.compare is None:
+        parser.error("--inspect-changed requires --compare")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
