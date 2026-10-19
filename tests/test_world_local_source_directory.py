@@ -3022,5 +3022,94 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
         self.assertEqual(saved.read_bytes(), initial)
 
+
+    def test_global_exact_reporter_drilldown_consistent_across_map_geojson_csv_gpkg(self):
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+        query = {**self.knowledge(), "source_exact": "survey-a"}
+        status, _, geo_raw = self.get({**query, "format": "presence-all-geojson"})
+        self.assertEqual(status, 200)
+        doc = json.loads(geo_raw)
+        original_ids = [row["id"] for row in doc["features"]]
+        self.assertTrue(original_ids)
+        self.assertEqual(doc["monde_source_coverage"]["exact_source_filter"], "survey-a")
+        self.assertEqual(doc["monde_source_coverage"]["selected_sources"], 1)
+        self.assertTrue(all(row["properties"]["source_id"] == "survey-a"
+                            for row in doc["features"]))
+        status, headers, html = self.get({**query, "format": "presence-all-map"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/html", headers["Content-Type"])
+        self.assertIn(b"Original source", html)
+        status, _, csv_raw = self.get({**query, "format": "presence-all-csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(csv_raw.decode("utf-8"))))
+        self.assertEqual([row["feature_id"] for row in rows], original_ids)
+        status, _, gpkg_raw = self.get({**query, "format": "presence-all-gpkg"})
+        self.assertEqual(status, 200)
+        with NamedTemporaryFile(suffix=".gpkg") as target:
+            Path(target.name).write_bytes(gpkg_raw)
+            with sqlite3.connect(target.name) as db:
+                ids = [row[0] for row in db.execute(
+                    "SELECT feature_id FROM original_points ORDER BY feature_id")]
+        self.assertEqual(ids, sorted(original_ids))
+        directory_html = self.get({**self.knowledge(), "format": "table"})[2]
+        self.assertIn(b"Map this reporter across all entities", directory_html)
+        self.assertIn(b"source_exact=survey-a", directory_html)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_exact_reporter_unknown_and_invalid_scope_fail_closed(self):
+        for fmt in ("presence-all-map", "presence-all-geojson",
+                    "presence-all-csv", "presence-all-gpkg"):
+            query = {**self.knowledge(), "format": fmt,
+                     "source_exact": "no-such-source"}
+            status, _, raw = self.get(query)
+            self.assertEqual(status, 200)
+            if fmt == "presence-all-geojson":
+                self.assertEqual(json.loads(raw)["features"], [])
+            elif fmt == "presence-all-csv":
+                self.assertEqual(len(list(csv.DictReader(
+                    io.StringIO(raw.decode("utf-8"))))), 0)
+        for bad in (
+            {"source_exact": ""}, {"source_exact": "\x7f"},
+            {"source_exact": "survey-a", "source_prefix": "survey"},
+            {"source_exact": "survey-a", "entity": "site-1"},
+            {"source_exact": "survey-a", "source": "survey-a"},
+            {"source_exact": "survey-a", "format": "table"},
+        ):
+            payload = {**self.knowledge(), "format": "presence-all-geojson", **bad}
+            self.assertEqual(self.get(payload)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_exact_reporter_wrapped_area_preserves_source_identity(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "dateline-exact-source.json"
+        world.save(saved)
+        unchanged = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            baseline = { "directory": "1", "axis": "world",
+                        "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                        "bbox": "179,-1,-179,1" }
+            geo = json.loads(self.get({
+                **baseline, "format": "presence-all-geojson"}, server)[2])
+            available = sorted({f["properties"]["source_id"] for f in geo["features"]})
+            self.assertTrue(available)
+            for reporter in available:
+                query = {**baseline, "source_exact": reporter}
+                scoped = json.loads(self.get({**query,
+                    "format": "presence-all-geojson"}, server)[2])
+                self.assertEqual([f["id"] for f in scoped["features"]],
+                    [f["id"] for f in geo["features"]
+                     if f["properties"]["source_id"] == reporter])
+                self.assertEqual(self.get({
+                    **query, "format": "presence-all-map"}, server)[0], 200)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), unchanged)
+
 if __name__ == "__main__":
     unittest.main()

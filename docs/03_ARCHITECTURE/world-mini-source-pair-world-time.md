@@ -872,3 +872,18 @@ coordinate identity is shown once, with its two cutoff visibility attributes;
 none of the maps asserts consensus, movement or a confirmed real-world position.
 The endpoint is loopback GET-only, has the existing response-size limit and
 content security policy, and does not change the saved WorldMini snapshot.
+
+### Global exact-reporter original Point drill-down (WORK-0131)
+
+The global reporter directory now offers **Map this reporter across all
+entities** beside each original source. It opens the same read-only global map
+as `presence-all-map`, with a strict `source_exact` query selector.
+The exact selector is supported consistently by `presence-all-map`,
+`presence-all-geojson`, `presence-all-csv` and `presence-all-gpkg`;
+all four use the same original source-report identities and earlier/later
+visibility, optionally constrained by the existing WGS84 bounding box and
+presence filter. It is not a fuzzy or inferred source identity. Unknown
+reporters produce an empty original-evidence selection, not fabricated data.
+Exact reporter focus is rejected for non-global formats and may not be
+combined with the directory's `source_prefix`. No endpoint, dependency,
+source snapshot or inference semantics change.

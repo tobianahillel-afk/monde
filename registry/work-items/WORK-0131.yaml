@@ -13,7 +13,8 @@ purpose: |
 scope:
   in: ["Global and region-scoped original Point evidence map",
        "Source prefix and bitemporal presence filters",
-       "Antimeridian-wrapped WGS84 bbox", "Read-only native browser navigation"]
+       "Antimeridian-wrapped WGS84 bbox", "Read-only native browser navigation",
+       "Exact source-reporter drill-down across map, GeoJSON, CSV and GeoPackage"]
   out: ["Inferred consensus or movement", "Model changes", "New services or dependencies"]
 acceptance_criteria:
   - {id: AC-1, description: "Rendered global map contains the exact same original Point identities as global GeoJSON.", status: IN_PROGRESS}
