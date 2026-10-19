@@ -4697,5 +4697,66 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(parts[1], [[-180, 11.0], [-179.0, 12.0]])
 
 
+    def test_reporter_witness_csv_http_matches_analytical_geojson(self):
+        """GIS witness rows preserve original reporter provenance at both axes."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            for margin in ("0", "20015"):
+                q = {**base, "compare_a": "survey-a", "compare_b": "survey-b",
+                     "gap_crossing_km": "1", "min_crossing_margin_km": margin}
+                code, headers, raw = self.get({
+                    **q, "format": "presence-all-compare-witness-csv"})
+                self.assertEqual(code, 200)
+                self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+                geo = json.loads(self.get({**q,
+                    "format": "presence-all-compare-witness-geojson"})[2])
+                witnesses = [f for f in geo["features"]
+                             if f["properties"].get("monde_geometry_role") ==
+                             "ANALYTICAL_REPORTER_GAP_WITNESS"]
+                self.assertEqual(len(rows), len(witnesses))
+                for row, feature in zip(rows, witnesses):
+                    props = feature["properties"]
+                    self.assertEqual((row["entity"], row["period"]),
+                                     (props["entity"], props["period"]))
+                    self.assertEqual(row["original_observation"], "false")
+                    self.assertEqual(row["geometry_role"],
+                                     "ANALYTICAL_REPORTER_GAP_WITNESS")
+                    self.assertEqual(row["source_a_assertion_id"],
+                                     props["source_a_assertion_id"])
+                    self.assertEqual(row["source_b_evidence_id"],
+                                     props["source_b_evidence_id"])
+                    self.assertEqual(float(row["distance_km"]), props["distance_km"])
+                    self.assertTrue(row["geometry_wkt"].startswith(
+                        ("LINESTRING (", "MULTILINESTRING (")))
+                table = self.get({**q, "format": "presence-all-compare-table"})[2]
+                self.assertIn(b"presence-all-compare-witness-csv", table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_witness_csv_dateline_and_formula_guard(self):
+        from monde.source_pair_changes import source_directory_global_pair_witness_csv
+        fixture = {"features": [{"type": "Feature",
+            "geometry": {"type": "MultiLineString", "coordinates": [
+                [[179.0, 10.0], [180, 11.0]],
+                [[-180, 11.0], [-179.0, 12.0]]]},
+            "properties": {"monde_geometry_role": "ANALYTICAL_REPORTER_GAP_WITNESS",
+                "entity": "=SUM(1,1)", "period": "earlier", "world_at": AT,
+                "knowledge_at": BEFORE, "source_a": "A", "source_b": "B",
+                "source_a_assertion_id": "a", "source_a_evidence_id": "ea",
+                "source_b_assertion_id": "b", "source_b_evidence_id": "eb",
+                "distance_km": 219.0}}]}
+        rows = list(csv.DictReader(io.StringIO(
+            source_directory_global_pair_witness_csv(fixture))))
+        self.assertEqual(rows[0]["entity"], "'=SUM(1,1)")
+        self.assertEqual(rows[0]["geometry_wkt"],
+                         "MULTILINESTRING ((179.0 10.0, 180 11.0), "
+                         "(-180 11.0, -179.0 12.0))")
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-a", "format": "presence-all-compare-witness-csv"}
+        self.assertEqual(self.get(q)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

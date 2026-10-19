@@ -1416,6 +1416,46 @@ def source_directory_global_pair_witness_geojson(
     return output
 
 
+
+def source_directory_global_pair_witness_csv(geojson):
+    """GIS-ready analytical nearest-pair witnesses, never source observations."""
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    def wkt(geometry):
+        def segment(points):
+            return ", ".join(f"{pt[0]} {pt[1]}" for pt in points)
+        kind = geometry["type"]
+        if kind == "LineString":
+            return "LINESTRING (" + segment(geometry["coordinates"]) + ")"
+        if kind == "MultiLineString":
+            return "MULTILINESTRING (" + ", ".join(
+                "(" + segment(part) + ")" for part in geometry["coordinates"]) + ")"
+        raise ValueError("unexpected analytical witness geometry")
+
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\r\n")
+    writer.writerow(("entity", "period", "world_at", "knowledge_at",
+                     "source_a", "source_b", "source_a_assertion_id",
+                     "source_a_evidence_id", "source_b_assertion_id",
+                     "source_b_evidence_id", "distance_km",
+                     "reporter_gap_crossing", "reporter_gap_crossing_margin_km",
+                     "geometry_wkt", "original_observation", "geometry_role"))
+    for feature in geojson["features"]:
+        p = feature["properties"]
+        if p.get("monde_geometry_role") != "ANALYTICAL_REPORTER_GAP_WITNESS":
+            continue
+        writer.writerow((safe(p["entity"]), p["period"], p["world_at"],
+                         p["knowledge_at"], safe(p["source_a"]), safe(p["source_b"]),
+                         safe(p["source_a_assertion_id"]), safe(p["source_a_evidence_id"]),
+                         safe(p["source_b_assertion_id"]), safe(p["source_b_evidence_id"]),
+                         p["distance_km"], p.get("reporter_gap_crossing", ""),
+                         p.get("reporter_gap_crossing_margin_km", ""),
+                         wkt(feature["geometry"]), "false",
+                         "ANALYTICAL_REPORTER_GAP_WITNESS"))
+    return stream.getvalue()
+
 def source_directory_global_pair_matrix_csv(matrix):
     """Export exact reporter-presence matrix rows without inventing agreement.
 

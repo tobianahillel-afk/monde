@@ -1376,8 +1376,10 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         link("presence-all-compare-csv", "Download reporter matrix CSV") + " · " +
         link("presence-all-compare-map", "Map matching original reports") + " · " +
         link("presence-all-compare-geojson", "Download matching original Points GeoJSON") +
-        " · " + link("presence-all-compare-witness-geojson",
+        " · " + link("presence-all-compare-witness-geojson", "presence-all-compare-witness-csv",
                     "Download nearest original reporter witness lines GeoJSON") +
+        " · " + link("presence-all-compare-witness-csv",
+                     "Download analyst nearest-pair witnesses WKT CSV") +
         '</p><nav aria-label="Original evidence transition filters">' +
         transition_link(None, "All evidence") + " · " +
         transition_link("reporters-changed", "Reporters changed") + " · " +
@@ -1435,7 +1437,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("min_crossing_margin_km") == "":
         args = {k: v for k, v in args.items() if k != "min_crossing_margin_km"}
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1457,7 +1459,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 args.get("format") not in
                     ("presence-all-map", "presence-all-geojson",
                      "presence-all-csv", "presence-all-gpkg",
-                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") or
+                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 any(k in args for k in
                     ("entity", "source", "source_exact", "source_prefix")) or
                 args["compare_a"] == args["compare_b"]):
@@ -1468,12 +1470,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                     ord(ch) < 32 or ord(ch) == 127 for ch in value):
                 raise ValueError("invalid compared original reporter")
     if args.get("format") in ("presence-all-compare-json",
-                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") and not comparing:
+                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") and not comparing:
         raise ValueError("reporter matrix requires two different sources")
     if "transition" in args and (
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
-                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") or
+                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
             args["transition"] not in
                 ("reporters-changed", "evidence-changed", "unchanged")):
         raise ValueError("invalid original reporter transition")
@@ -1481,13 +1483,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
                  "presence-all-compare-csv", "presence-all-compare-map",
-                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson") or
+                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
             args["gap_trend"] not in
                 ("widening", "narrowing", "steady", "unknown")):
         raise ValueError("invalid original reporter gap trend")
     formats = ("presence-all-compare-json", "presence-all-compare-table",
                "presence-all-compare-csv", "presence-all-compare-map",
-               "presence-all-compare-geojson", "presence-all-compare-witness-geojson")
+               "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv")
     if "min_gap_km" in args:
         value = args["min_gap_km"]
         if (args.get("format") not in formats or
@@ -1532,21 +1534,21 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "focus_entity" in args:
         focus = args["focus_entity"]
         if (not comparing or args.get("format") not in
-                ("presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") or
+                ("presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 not 0 < len(focus) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in focus)):
             raise ValueError("exact entity focus requires two reporter map export")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
-                                       "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") or
+                                       "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 "entity" in args or "source" in args or
                 "source_prefix" in args or
                 not 0 < len(value) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
             raise ValueError("exact reporter requires a global original Point export")
     if "bbox" in args:
-        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson"):
+        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"):
             raise ValueError("bbox is only supported for global Point exports")
         from .source_pair_changes import _valid_presence_bbox
         _valid_presence_bbox(_bbox(args["bbox"]))
@@ -1572,10 +1574,10 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-map", "presence-table") or
-            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson"))):
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-map", "presence-table") or
+            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"))):
         raise ValueError("original presence requires an exact entity export")
-    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson") and
+    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") and
             ("entity" in args or "source" in args)):
         raise ValueError("global source export cannot have entity/source focus")
     if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-map", "presence-table") and (
@@ -2639,7 +2641,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             return
                         if output_format in ("presence-all-compare-json",
                                              "presence-all-compare-table", "presence-all-compare-csv",
-                                             "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson"):
+                                             "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"):
                             from .source_pair_changes import source_directory_global_pair_matrix
                             matrix = source_directory_global_pair_matrix(
                                 world, document, args.get("presence"),
@@ -2674,6 +2676,27 @@ def create_server(state: str | Path, port: int = 0, *,
                                 return (self._html(result) if output_format ==
                                         "presence-all-compare-map" else
                                         self._reply(200, result))
+                            if output_format == "presence-all-compare-witness-csv":
+                                from .source_pair_changes import (
+                                    source_directory_global_pair_witness_geojson,
+                                    source_directory_global_pair_witness_csv)
+                                witness = source_directory_global_pair_witness_geojson(
+                                    world, document, matrix, args.get("presence"),
+                                    _bbox(args["bbox"]) if "bbox" in args else None,
+                                    False, args.get("focus_entity"))
+                                body = source_directory_global_pair_witness_csv(witness).encode("utf-8")
+                                if len(body) > max_response_bytes:
+                                    return self._reply(413, {"error": "response_too_large"})
+                                self.send_response(200)
+                                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                                self.send_header("Content-Disposition",
+                                                 'attachment; filename="monde-original-pair-witnesses.csv"')
+                                self.send_header("Content-Length", str(len(body)))
+                                self.send_header("Cache-Control", "no-store")
+                                self.send_header("X-Content-Type-Options", "nosniff")
+                                self.end_headers()
+                                self.wfile.write(body)
+                                return
                             if output_format == "presence-all-compare-csv":
                                 from .source_pair_changes import source_directory_global_pair_matrix_csv
                                 body = source_directory_global_pair_matrix_csv(matrix).encode("utf-8")
