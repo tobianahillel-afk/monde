@@ -1093,7 +1093,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             not isinstance(min_gap_km, (int, float)) or
             not isfinite(min_gap_km) or not 0 <= min_gap_km <= 20015):
         raise ValueError("invalid reporter gap threshold")
-    if gap_order not in (None, "largest"):
+    if gap_order not in (None, "largest", "largest-change"):
         raise ValueError("invalid reporter gap order")
     def gap(row):
         values = [row[p]["separation_km"]["nearest_km"]
@@ -1107,6 +1107,15 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             (gap(r) is not None and gap(r) >= min_gap_km)]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
+    elif gap_order == "largest-change":
+        # Compare only original reports jointly observed at BOTH cutoffs.
+        # Missing comparisons are UNKNOWN and sort last, never as zero change.
+        def absolute_change(row):
+            delta = row["separation_change_km"]
+            return None if delta is None else abs(delta["nearest_km"])
+        rows.sort(key=lambda r: (
+            absolute_change(r) is None,
+            -(absolute_change(r) or 0), r["entity"]))
     counts = {p: {k: 0 for k in ("BOTH_REPORTED", "ONLY_SOURCE_A",
                                 "ONLY_SOURCE_B")} for p in ("earlier", "later")}
     for row in rows:

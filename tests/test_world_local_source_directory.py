@@ -4044,5 +4044,103 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(_measure_with_original_pair([], right), (None, None))
         self.assertEqual(_measure_with_original_pair(left, []), (None, None))
 
+
+    def test_reporter_gap_change_priority_real_http_and_original_evidence(self):
+        """Rank the magnitude of the CHANGE in reporters, never their accuracy."""
+        for cutoffs in (self.knowledge(),
+                        {"directory": "1", "axis": "world",
+                         "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            base = {**cutoffs, "compare_a": "survey-a", "compare_b": "survey-b",
+                    "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            original = json.loads(raw)
+            def magnitude(row):
+                delta = row["separation_change_km"]
+                return None if delta is None else abs(delta["nearest_km"])
+            expected = sorted(original["entities"], key=lambda r: (
+                magnitude(r) is None, -(magnitude(r) or 0), r["entity"]))
+            query = {**base, "gap_order": "largest-change"}
+            status, _, raw = self.get({**query,
+                                       "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            self.assertEqual([r["entity"] for r in matrix["entities"]],
+                             [r["entity"] for r in expected])
+            self.assertEqual(matrix["gap_selection"]["order"], "largest-change")
+            self.assertEqual(matrix["total_entities"], original["total_entities"])
+            self.assertEqual(matrix["total_original_reports"],
+                             original["total_original_reports"])
+            for actual, before in zip(matrix["entities"], expected):
+                self.assertEqual(actual, before)
+
+            status, _, csv_body = self.get({**query,
+                    "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(csv_body.decode("utf-8"))))
+            self.assertEqual([r["entity"] for r in rows[::2]],
+                             [r["entity"] for r in expected])
+            status, _, html = self.get({**query,
+                    "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b'value="largest-change" selected', html)
+            self.assertIn(b'Largest change in original-report gap first', html)
+            status, _, geo_raw = self.get({**query,
+                    "format": "presence-all-compare-geojson"})
+            self.assertEqual(status, 200)
+            geojson = json.loads(geo_raw)
+            self.assertEqual(geojson["monde_source_coverage"]
+                             ["reporter_matrix"]["gap_selection"]["order"],
+                             "largest-change")
+            self.assertEqual({f["properties"]["entity"]
+                              for f in geojson["features"]},
+                             {row["entity"] for row in expected})
+            self.assertEqual(self.get({**query,
+                    "format": "presence-all-compare-map"})[0], 200)
+            self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_gap_change_priority_ignores_unpaired_unknown_not_zero(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        _, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        original = json.loads(raw)
+        ranked = json.loads(self.get({**base, "gap_order": "largest-change",
+                         "format": "presence-all-compare-json"})[2])
+        known = [r for r in ranked["entities"]
+                 if r["separation_change_km"] is not None]
+        missing = [r for r in ranked["entities"]
+                   if r["separation_change_km"] is None]
+        self.assertEqual(ranked["entities"], known + missing)
+        self.assertEqual(len(ranked["entities"]), len(original["entities"]))
+        self.assertEqual([r["entity"] for r in known],
+                         [r["entity"] for r in sorted(known, key=lambda r: (
+                            -abs(r["separation_change_km"]["nearest_km"]),
+                            r["entity"]))])
+        for invalid in ("largest-change-now", "LARGEST-CHANGE", "", "random"):
+            status, _, raw = self.get({**base, "gap_order": invalid,
+                                 "format": "presence-all-compare-json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for unrelated in ("presence-all-map", "presence-all-geojson", "json"):
+            status, _, raw = self.get({**base, "gap_order": "largest-change",
+                                      "format": unrelated})
+            self.assertEqual(status, 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_gap_change_priority_preserves_existing_persistent_threshold(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "min_gap_km": "0",
+                "gap_window": "both"}
+        original = json.loads(self.get({**base,
+            "format": "presence-all-compare-json"})[2])
+        change = json.loads(self.get({**base, "gap_order": "largest-change",
+            "format": "presence-all-compare-json"})[2])
+        self.assertEqual({r["entity"] for r in original["entities"]},
+                         {r["entity"] for r in change["entities"]})
+        self.assertEqual(change["gap_selection"]["window"], "both")
+        self.assertTrue(all(r["separation_change_km"] is not None
+                            for r in change["entities"]))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
