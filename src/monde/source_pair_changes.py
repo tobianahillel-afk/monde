@@ -962,7 +962,7 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 
 def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
-                                        transition=None):
+                                        transition=None, gap_trend=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1035,17 +1035,22 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
 
 
 
-    return filter_reporter_matrix_transitions(matrix, transition)
+    return filter_reporter_matrix_transitions(matrix, transition, gap_trend)
 
 
-def filter_reporter_matrix_transitions(matrix, transition=None):
+def filter_reporter_matrix_transitions(matrix, transition=None, gap_trend=None):
     """Classify original source/evidence differences, never physical events."""
     allowed = {"reporters-changed": "REPORTERS_CHANGED",
                "evidence-changed": "ORIGINAL_EVIDENCE_CHANGED",
                "unchanged": "UNCHANGED"}
     if transition is not None and transition not in allowed:
         raise ValueError("invalid original reporter transition")
+    trends = {"widening": "WIDENING", "narrowing": "NARROWING",
+              "steady": "STEADY", "unknown": "UNKNOWN"}
+    if gap_trend is not None and gap_trend not in trends:
+        raise ValueError("invalid reporter separation trend")
     counts = {v: 0 for v in allowed.values()}
+    gap_counts = {v: 0 for v in trends.values()}
     totals = {p: {"BOTH_REPORTED": 0, "ONLY_SOURCE_A": 0,
                   "ONLY_SOURCE_B": 0} for p in ("earlier", "later")}
     selected = []
@@ -1061,15 +1066,26 @@ def filter_reporter_matrix_transitions(matrix, transition=None):
         counts[category] += 1
         if transition is not None and allowed[transition] != category:
             continue
-        selected.append({**row, "reporting_transition": category})
+        delta = row.get("separation_change_km")
+        nearest = None if delta is None else delta["nearest_km"]
+        trend = ("UNKNOWN" if nearest is None else
+                 "WIDENING" if nearest > 0 else
+                 "NARROWING" if nearest < 0 else "STEADY")
+        gap_counts[trend] += 1
+        if gap_trend is not None and trends[gap_trend] != trend:
+            continue
+        selected.append({**row, "reporting_transition": category,
+                         "reporter_gap_trend": trend})
         for period in ("earlier", "later"):
             status = row[period]["status"]
             if status != "NOT_REPORTED":
                 totals[period][status] += 1
     return {**matrix, "entities": selected, "total_entities": len(selected),
             "total_entities_unfiltered": len(matrix["entities"]),
-            "transition_counts": counts, "per_period": totals,
-            **({"transition_filter": transition} if transition else {})}
+            "transition_counts": counts, "gap_trend_counts": gap_counts,
+            "per_period": totals,
+            **({"transition_filter": transition} if transition else {}),
+            **({"gap_trend_filter": gap_trend} if gap_trend else {})}
 
 
 
@@ -1087,12 +1103,15 @@ def source_directory_global_pair_transition_geojson(
                 source_directory_all_presence_geojson)
     geojson = exporter(world, directory, presence, bbox,
                        source_compare=sources)
-    categories = {row["entity"]: row["reporting_transition"]
+    categories = {row["entity"]: row
                   for row in matrix["entities"]
                   if focus_entity is None or row["entity"] == focus_entity}
     geojson["features"] = [
         {**feature, "properties": {**feature["properties"],
-         "monde_reporting_transition": categories[feature["properties"]["entity"]]}}
+         "monde_reporting_transition":
+             categories[feature["properties"]["entity"]]["reporting_transition"],
+         "monde_reporter_gap_trend":
+             categories[feature["properties"]["entity"]]["reporter_gap_trend"]}}
         for feature in geojson["features"]
         if feature["properties"]["entity"] in categories]
     count = len(geojson["features"])
@@ -1107,8 +1126,11 @@ def source_directory_global_pair_transition_geojson(
             "all_matching_entities": matrix["total_entities"]}
            if focus_entity is not None else {}),
         "transition_counts": matrix["transition_counts"],
+        "gap_trend_counts": matrix["gap_trend_counts"],
         **({"transition_filter": matrix["transition_filter"]}
-           if "transition_filter" in matrix else {})}
+           if "transition_filter" in matrix else {}),
+        **({"gap_trend_filter": matrix["gap_trend_filter"]}
+           if "gap_trend_filter" in matrix else {})}
     coverage["interpretation"] = (
         "Original source Point evidence from selected reporter-matrix entities; "
         "no inferred movement, verified position, consensus or truth; "
@@ -1144,7 +1166,8 @@ def source_directory_global_pair_matrix_csv(matrix):
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("entity", "period", "reporting_status",
-                     "reporting_transition", "source_a", "source_b", "source_a_count", "source_b_count",
+                     "reporting_transition", "reporter_gap_trend",
+                     "source_a", "source_b", "source_a_count", "source_b_count",
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
@@ -1157,6 +1180,7 @@ def source_directory_global_pair_matrix_csv(matrix):
             cutoff = matrix["cutoffs"][period]
             writer.writerow((safe(item["entity"]), period, row["status"],
                              item.get("reporting_transition", ""),
+                             item.get("reporter_gap_trend", "UNKNOWN"),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
