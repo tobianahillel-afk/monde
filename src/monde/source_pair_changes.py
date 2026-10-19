@@ -961,7 +961,8 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 
 
 def source_directory_global_pair_matrix(world, directory, presence=None,
-                                        bbox=None, source_compare=None):
+                                        bbox=None, source_compare=None,
+                                        transition=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1009,7 +1010,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                            "source_a": original_identity(left),
                            "source_b": original_identity(right)}
         rows.append(row)
-    return {
+    matrix = {
         "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
         "source_a": a, "source_b": b,
         "axis": directory["axis"], "cutoffs": directory["cutoffs"],
@@ -1024,6 +1025,43 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
     }
 
 
+
+
+    return filter_reporter_matrix_transitions(matrix, transition)
+
+
+def filter_reporter_matrix_transitions(matrix, transition=None):
+    """Classify original source/evidence differences, never physical events."""
+    allowed = {"reporters-changed": "REPORTERS_CHANGED",
+               "evidence-changed": "ORIGINAL_EVIDENCE_CHANGED",
+               "unchanged": "UNCHANGED"}
+    if transition is not None and transition not in allowed:
+        raise ValueError("invalid original reporter transition")
+    counts = {v: 0 for v in allowed.values()}
+    totals = {p: {"BOTH_REPORTED": 0, "ONLY_SOURCE_A": 0,
+                  "ONLY_SOURCE_B": 0} for p in ("earlier", "later")}
+    selected = []
+    for row in matrix["entities"]:
+        before, after = row["earlier"], row["later"]
+        if before["status"] != after["status"]:
+            category = "REPORTERS_CHANGED"
+        elif any(before[side] != after[side]
+                 for side in ("source_a", "source_b")):
+            category = "ORIGINAL_EVIDENCE_CHANGED"
+        else:
+            category = "UNCHANGED"
+        counts[category] += 1
+        if transition is not None and allowed[transition] != category:
+            continue
+        selected.append({**row, "reporting_transition": category})
+        for period in ("earlier", "later"):
+            status = row[period]["status"]
+            if status != "NOT_REPORTED":
+                totals[period][status] += 1
+    return {**matrix, "entities": selected, "total_entities": len(selected),
+            "total_entities_unfiltered": len(matrix["entities"]),
+            "transition_counts": counts, "per_period": totals,
+            **({"transition_filter": transition} if transition else {})}
 
 
 def source_directory_global_pair_matrix_csv(matrix):
@@ -1048,7 +1086,7 @@ def source_directory_global_pair_matrix_csv(matrix):
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("entity", "period", "reporting_status",
-                     "source_a", "source_b", "source_a_count", "source_b_count",
+                     "reporting_transition", "source_a", "source_b", "source_a_count", "source_b_count",
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
@@ -1059,6 +1097,7 @@ def source_directory_global_pair_matrix_csv(matrix):
             a, b = row["source_a"], row["source_b"]
             cutoff = matrix["cutoffs"][period]
             writer.writerow((safe(item["entity"]), period, row["status"],
+                             item.get("reporting_transition", ""),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
