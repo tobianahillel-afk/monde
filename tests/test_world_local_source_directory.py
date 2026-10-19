@@ -3194,5 +3194,91 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(raw), expected)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_two_reporter_matrix_json_preserves_gis_original_evidence(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b"}
+        status, headers, raw = self.get({**q, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        matrix = json.loads(raw)
+        self.assertEqual(matrix["schema"], "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1")
+        self.assertEqual((matrix["source_a"], matrix["source_b"]),
+                         ("survey-a", "survey-b"))
+        status, _, raw_geo = self.get({**q, "format": "presence-all-geojson"})
+        self.assertEqual(status, 200)
+        features = json.loads(raw_geo)["features"]
+        self.assertEqual(matrix["total_original_reports"], len(features))
+        self.assertEqual(matrix["total_entities"], len({
+            f["properties"]["entity"] for f in features}))
+        self.assertTrue(matrix["entities"])
+        for item in matrix["entities"]:
+            for period in ("earlier", "later"):
+                current = [f for f in features if
+                           f["properties"]["entity"] == item["entity"] and
+                           f["properties"][period + "_visible"]]
+                a = [f for f in current if f["properties"]["source_id"] == "survey-a"]
+                b = [f for f in current if f["properties"]["source_id"] == "survey-b"]
+                expected = ("BOTH_REPORTED" if a and b else
+                            "ONLY_SOURCE_A" if a else
+                            "ONLY_SOURCE_B" if b else "NOT_REPORTED")
+                self.assertEqual(item[period]["status"], expected)
+                for key, originals in (("source_a", a), ("source_b", b)):
+                    self.assertEqual(item[period][key]["count"], len(originals))
+                    self.assertEqual(item[period][key]["assertion_ids"],
+                                     [f["properties"]["monde_original_assertion_id"]
+                                      for f in originals])
+                    self.assertEqual(item[period][key]["evidence_ids"],
+                                     [f["properties"]["evidence_id"]
+                                      for f in originals])
+                    self.assertEqual(item[period][key]["coordinates"],
+                                     [f["geometry"]["coordinates"]
+                                      for f in originals])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_browser_and_strict_query(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b"}
+        status, _, html = self.get({**q, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporter Point matrix", html)
+        self.assertIn(b"Open original evidence map", html)
+        self.assertIn(b"presence-all-compare-json", html)
+        status, _, index = self.get(self.knowledge())
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporting table", index)
+        self.assertIn(b"Original reporting JSON", index)
+        for invalid in ({"compare_b": "survey-a"}, {"compare_a": ""},
+                        {"source_exact": "survey-a"},
+                        {"source_prefix": "sur"}, {"entity": "site-1"}):
+            for fmt in ("presence-all-compare-json", "presence-all-compare-table"):
+                status, _, raw = self.get({**q, **invalid, "format": fmt})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for fmt in ("presence-all-compare-json", "presence-all-compare-table"):
+            self.assertEqual(self.get({**self.knowledge(), "format": fmt})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_respects_spatial_and_visibility_filters(self):
+        from monde.source_pair_changes import source_directory_global_pair_matrix
+        directory = json.loads(self.get({**self.knowledge(), "format": "json"})[2])
+        for period in ("earlier", "later", "both"):
+            query = {**self.knowledge(), "compare_a": "survey-a",
+                     "compare_b": "survey-b", "presence": period,
+                     "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            expected = source_directory_global_pair_matrix(
+                self.world, directory, period, [-180, -90, 180, 90],
+                ("survey-a", "survey-b"))
+            self.assertEqual(json.loads(raw), expected)
+        status, _, raw = self.get({
+            **self.knowledge(), "compare_a": "unknown-a", "compare_b": "unknown-b",
+            "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["entities"], [])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
 if __name__ == "__main__":
     unittest.main()
