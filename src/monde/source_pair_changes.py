@@ -852,7 +852,22 @@ def source_directory_entity_presence_gpkg(world, directory, presence=None):
     return _presence_geojson_to_gpkg(geojson)
 
 
-def source_directory_all_presence_gpkg(world, directory, presence=None):
+def _valid_presence_bbox(bbox):
+    """Inclusive original WGS84 viewport; west>east crosses the dateline."""
+    import math
+    if (not isinstance(bbox, (list, tuple)) or len(bbox) != 4 or
+            any(isinstance(v, bool) or not isinstance(v, (float, int)) or
+                not math.isfinite(v) for v in bbox)):
+        raise ValueError("invalid original Point export bbox")
+    west, south, east, north = bbox
+    if (not -180 <= west <= 180 or not -180 <= east <= 180 or
+            not -90 <= south < north <= 90 or west == east or
+            (west == 180 and east == -180)):
+        raise ValueError("invalid original Point export bbox")
+    return west, south, east, north
+
+
+def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
     """One offline GIS layer of original source Points across *all* entities.
 
     Export only the original sources selected by the existing source directory
@@ -864,6 +879,9 @@ def source_directory_all_presence_gpkg(world, directory, presence=None):
         raise ValueError("global source directory required")
     if presence not in (None, "earlier", "later", "both"):
         raise ValueError("invalid original report presence filter")
+    # Only original observations within this requested viewport qualify.
+    if bbox is not None:
+        west, south, east, north = _valid_presence_bbox(bbox)
     sources = {row["source_id"] for row in directory["sources"]}
     by_identity = {}
     for period in ("earlier", "later"):
@@ -874,6 +892,11 @@ def source_directory_all_presence_gpkg(world, directory, presence=None):
             if props["source_id"] not in sources:
                 continue
             lon, lat = original["geometry"]["coordinates"]
+            if bbox is not None and not (
+                    south <= lat <= north and
+                    (west <= lon <= east if west < east else
+                     lon >= west or lon <= east)):
+                continue
             identity = (props["entity"], props["source_id"], original["id"],
                         props["evidence_id"], lon, lat)
             entry = by_identity.setdefault(
@@ -910,6 +933,7 @@ def source_directory_all_presence_gpkg(world, directory, presence=None):
         **({key: directory[key] for key in ("source_prefix", "reporting_filter")
             if key in directory}),
         **({"presence_filter": presence} if presence is not None else {}),
+        **({"bbox_filter": list(bbox)} if bbox is not None else {}),
         "interpretation": (
             "Original source Point presence across two cutoffs; not "
             "inferred truth, movement or a consensus position"),

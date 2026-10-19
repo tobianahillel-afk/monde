@@ -1236,17 +1236,22 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    if "bbox" in args:
+        if args.get("format") != "presence-all-gpkg":
+            raise ValueError("bbox is only supported for global GeoPackage")
+        from .source_pair_changes import _valid_presence_bbox
+        _valid_presence_bbox(_bbox(args["bbox"]))
     # Original Point drill-down is only available from an exact entity+source
     # presence map. No new endpoint, no inferred position, no partial identity.
     exact_fields = {"assertion", "evidence", "longitude", "latitude"}
@@ -1362,6 +1367,24 @@ def _source_directory_html(document: dict, args: dict[str, str],
                      if "entity_focus" not in document else None)
     presence_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-map"})
                          if "entity_focus" in document else None)
+    region_gpkg_form = ""
+    if "entity_focus" not in document:
+        hidden = "".join(
+            '<input type="hidden" name="' + escape(k, quote=True) +
+            '" value="' + escape(v, quote=True) + '">'
+            for k, v in {**{k: v for k, v in args.items()
+                             if k not in ("format", "bbox")},
+                         "format": "presence-all-gpkg"}.items())
+        region_gpkg_form = (
+            '<form action="/source-pair" method="get"><fieldset>'
+            '<legend>Export original source Points inside a WGS84 region</legend>' +
+            hidden + '<label>West,south,east,north '
+            '<input name="bbox" required placeholder="2.2,48.8,2.5,49.0" '
+            'value="' + escape(args.get("bbox", ""), quote=True) + '"></label>'
+            '<button type="submit">Download area GeoPackage</button>'
+            '<p>West greater than east crosses the antimeridian. Original '
+            'reported positions only, not inferred locations.</p>'
+            '</fieldset></form>')
     filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
                ("gone", "Any no-longer-reported entities"),
                ("both", "Any continuously reported entities"))
@@ -1558,7 +1581,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
          escape("/source-pair?" + urlencode(
              {**args, "format": "geojson"}), quote=True) +
          '">Download original reporter Points GeoJSON</a>'
-         if "entity_focus" in document else '') + '</p>' + presence_maps + reporter_presence +
+         if "entity_focus" in document else '') + '</p>' + region_gpkg_form + presence_maps + reporter_presence +
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -2234,7 +2257,10 @@ def create_server(state: str | Path, port: int = 0, *,
                             export = (source_directory_all_presence_gpkg
                                       if output_format == "presence-all-gpkg"
                                       else source_directory_entity_presence_gpkg)
-                            body = export(world, document, args.get("presence"))
+                            body = (export(world, document, args.get("presence"),
+                                           _bbox(args["bbox"]) if "bbox" in args else None)
+                                    if output_format == "presence-all-gpkg" else
+                                    export(world, document, args.get("presence")))
                             if len(body) > max_response_bytes:
                                 return self._reply(413, {"error": "response_too_large"})
                             self.send_response(200)
