@@ -4740,8 +4740,11 @@ class SourceDirectoryTests(unittest.TestCase):
         for base in (self.knowledge(),
                      {"directory": "1", "axis": "world",
                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            # Use the complete reporter matrix: an arbitrary crossing
+            # threshold could filter out all witnesses and make this
+            # temporal-selection regression test vacuous.
             shared = {**base, "compare_a": "survey-a",
-                      "compare_b": "survey-b", "gap_crossing_km": "1"}
+                      "compare_b": "survey-b"}
             all_geo = json.loads(self.get({
                 **shared, "format": "presence-all-compare-witness-geojson"})[2])
             all_witness = [f for f in all_geo["features"]
