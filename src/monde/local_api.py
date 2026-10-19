@@ -1271,6 +1271,14 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                     ' · '.join(links) + "</th>" +
                     "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
+    def transition_link(value, text):
+        retained = {key: val for key, val in shared.items()
+                    if key != "transition"}
+        if value is not None:
+            retained["transition"] = value
+        target = "/source-pair?" + urlencode(
+            {**retained, "format": "presence-all-compare-table"})
+        return '<a href="' + escape(target, quote=True) + '">' + text + '</a>'
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
@@ -1283,14 +1291,27 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         link("presence-all-map", "Open original evidence map") + " · " +
         link("presence-all-compare-json", "Download reporter matrix JSON") + " · " +
         link("presence-all-compare-csv", "Download reporter matrix CSV") +
-        '</p><table><caption>Selected original Point reports, not agreement'
+        '</p><nav aria-label="Original evidence transition filters">' +
+        transition_link(None, "All evidence") + " · " +
+        transition_link("reporters-changed", "Reporters changed") + " · " +
+        transition_link("evidence-changed", "Original evidence changed") + " · " +
+        transition_link("unchanged", "Unchanged original evidence") +
+        '</nav><table><caption>Selected original Point reports, not agreement'
         '</caption><thead><tr><th rowspan="2">Entity</th>'
+        '<th rowspan="2">Evidence transition</th>'
         '<th colspan="3">Earlier</th><th colspan="3">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
         '<th>Source B assertions</th><th>Status</th>'
         '<th>Source A assertions</th><th>Source B assertions</th></tr>'
         '</thead><tbody>' + "".join(body) + '</tbody></table>'
-        '<p>Total entities: ' + str(doc["total_entities"]) + '</p>' +
+        '<p>Matching entities: ' + str(doc["total_entities"]) +
+        ' of ' + str(doc["total_entities_unfiltered"]) +
+        ' · Reporter changes: ' +
+        str(doc["transition_counts"]["REPORTERS_CHANGED"]) +
+        ' · Evidence changes: ' +
+        str(doc["transition_counts"]["ORIGINAL_EVIDENCE_CHANGED"]) +
+        ' · Unchanged: ' + str(doc["transition_counts"]["UNCHANGED"]) +
+        '</p>' +
         '<p>Entity and source links open full original Point evidence at the '
         'same world/knowledge cutoffs, outside any global bbox filter. '
         'No consensus location or physical movement is inferred.</p></html>'
@@ -1306,13 +1327,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1336,6 +1357,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("format") in ("presence-all-compare-json",
                                  "presence-all-compare-table", "presence-all-compare-csv") and not comparing:
         raise ValueError("reporter matrix requires two different sources")
+    if "transition" in args and (
+            args.get("format") not in
+                ("presence-all-compare-json", "presence-all-compare-table",
+                 "presence-all-compare-csv") or
+            args["transition"] not in
+                ("reporters-changed", "evidence-changed", "unchanged")):
+        raise ValueError("invalid original reporter transition")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
@@ -1689,7 +1717,8 @@ def _source_directory_html(document: dict, args: dict[str, str],
                     cells.append("<td>0</td>")
             summary_rows.append('<tr><th scope="row">' +
                                 escape(row["source_id"]) + "</th>" +
-                                "".join(cells) + "</tr>")
+                                "<td>" + escape(item["reporting_transition"]) + "</td>" +
+                     "".join(cells) + "</tr>")
         reporter_presence = (
             '<section aria-label="Original report presence by reporter">'
             "<h2>Original Point report presence by reporter</h2>"
@@ -2443,7 +2472,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             matrix = source_directory_global_pair_matrix(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                compare_sources)
+                                compare_sources, args.get("transition"))
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format == "presence-all-compare-csv":
