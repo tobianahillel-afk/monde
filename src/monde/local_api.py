@@ -1485,7 +1485,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
             '<option value="presence-all-gpkg">Offline GeoPackage</option>'
             '<option value="presence-all-compare-table">Original reporting table</option>'
             '<option value="presence-all-compare-json">Original reporting JSON</option>'
-            '</select></label> 
+            '</select></label> '
             '<button type="submit">Compare original source Points</button>'
             '<p>Original reports only; no inferred agreement or movement.</p>'
             '</fieldset></form>')
