@@ -2329,10 +2329,12 @@ def create_server(state: str | Path, port: int = 0, *,
                             export = (source_directory_all_presence_gpkg
                                       if output_format == "presence-all-gpkg"
                                       else source_directory_entity_presence_gpkg)
-                            body = (export(world, document, args.get("presence"),
-                                           _bbox(args["bbox"]) if "bbox" in args else None)
-                                    args.get("source_exact")) if output_format == "presence-all-gpkg" else
-                                    export(world, document, args.get("presence")))
+                            body = (export(
+                                world, document, args.get("presence"),
+                                _bbox(args["bbox"]) if "bbox" in args else None,
+                                args.get("source_exact"))
+                                if output_format == "presence-all-gpkg" else
+                                export(world, document, args.get("presence")))
                             if len(body) > max_response_bytes:
                                 return self._reply(413, {"error": "response_too_large"})
                             self.send_response(200)
