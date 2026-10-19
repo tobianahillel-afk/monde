@@ -4420,5 +4420,68 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
+    def test_crossing_margin_http_parity_and_original_evidence(self):
+        """Rank meaningful overshoots, excluding boundary-only crossers."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            query = {**base, "compare_a": "survey-a", "compare_b": "survey-b",
+                     "gap_crossing_km": "1", "format": "presence-all-compare-json"}
+            candidates = json.loads(self.get(query)[2])["entities"]
+            for margin in ("0", "0.001", "1", "20015"):
+                threshold = float(margin)
+                expected = set()
+                for row in candidates:
+                    later = row["later"]["separation_km"]["nearest_km"]
+                    overshoot = (later - 1 if
+                        row["reporter_gap_crossing"] == "CROSSED_ABOVE"
+                        else 1 - later)
+                    if overshoot >= threshold:
+                        expected.add(row["entity"])
+                filtered = {**query, "min_crossing_margin_km": margin}
+                status, _, data = self.get(filtered)
+                self.assertEqual(status, 200)
+                result = json.loads(data)
+                self.assertEqual({r["entity"] for r in result["entities"]},
+                                 expected)
+                self.assertEqual(result["gap_selection"][
+                    "minimum_crossing_margin_km"], threshold)
+                raw_csv = self.get({
+                    **filtered, "format": "presence-all-compare-csv"})[2]
+                self.assertEqual({r["entity"] for r in csv.DictReader(
+                    io.StringIO(raw_csv.decode("utf-8")))}, expected)
+                features = json.loads(self.get({
+                    **filtered, "format": "presence-all-compare-geojson"})[2])
+                self.assertEqual({f["properties"]["entity"]
+                                  for f in features["features"]}, expected)
+                _, _, html = self.get({
+                    **filtered, "format": "presence-all-compare-table"})
+                self.assertIn(b'name="min_crossing_margin_km"', html)
+                self.assertEqual(self.get({
+                    **filtered, "format": "presence-all-compare-map"})[0], 200)
+            unfiltered = json.loads(self.get({
+                **query, "min_crossing_margin_km": ""})[2])
+            self.assertEqual(unfiltered["entities"], candidates)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_crossing_margin_query_rejects_bad_scope_and_values(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b",
+                 "format": "presence-all-compare-json", "gap_crossing_km": "1"}
+        for value in ("-1", "NaN", "inf", "1e2", "1.0001", "20016",
+                      " 1", "01", "+0", "false"):
+            code, _, body = self.get({
+                **query, "min_crossing_margin_km": value})
+            self.assertEqual(code, 400, value)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.get({**query, "min_crossing_margin_km": "0",
+            "format": "presence-all-map"})[0], 400)
+        without_crossing = {k: v for k, v in query.items()
+                            if k != "gap_crossing_km"}
+        self.assertEqual(self.get({**without_crossing,
+            "min_crossing_margin_km": "0"})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1087,3 +1087,17 @@ read-only and remains unchanged.
 ### Direction des franchissements d'écart entre reporters (WORK-0141)
 
 Pour `gap_crossing_km=N`, le paramètre optionnel `gap_crossing_direction=above|below` sélectionne respectivement `CROSSED_ABOVE` ou `CROSSED_BELOW` sur les observations Point originales **comparables aux deux instants**. Sans direction, les deux catégories sont conservées. `gap_crossing_direction` sans seuil est rejeté. Le tableau local, la réponse JSON, le CSV (`reporter_gap_crossing`), le GeoJSON et la carte conservent la même sélection et les identifiants de preuves originaux. Aucune direction n'est inférée lorsque des observations manquent ; aucun mouvement physique n'est prétendu.
+
+
+## Significant original threshold crossings (WORK-0142)
+
+Add `min_crossing_margin_km=M` (0–20015 km, at most three decimals) with
+`gap_crossing_km=N` to the existing two-reporter evidence matrix. A crossing
+qualifies only when the **later original nearest Point separation** is at least
+M kilometres beyond threshold N on the crossed side. Both temporal axes and
+crossing directions are supported. M=0 retains prior crossings, blank browser
+entry disables this extra filter. UNKNOWN paired evidence never becomes zero.
+The same filtered original entities and evidence identities appear in JSON,
+CSV, accessible HTML, original GeoJSON and the read-only offline map; JSON
+`gap_selection.minimum_crossing_margin_km` records the chosen margin.
+No inferred movement, location consensus, mutation, service or dependency.

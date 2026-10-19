@@ -1009,7 +1009,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                                         min_gap_km=None, gap_order=None,
                                         gap_window=None, min_gap_change_km=None,
                                         gap_crossing_km=None,
-                                        gap_crossing_direction=None):
+                                        gap_crossing_direction=None,
+                                        min_crossing_margin_km=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1090,7 +1091,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         raise ValueError("invalid reporter gap window")
     if (min_gap_km is None and gap_order is None and
             min_gap_change_km is None and gap_crossing_km is None and
-            gap_crossing_direction is None):
+            gap_crossing_direction is None and min_crossing_margin_km is None):
         return matrix
     if (gap_crossing_direction not in (None, "above", "below") or
             (gap_crossing_direction is not None and gap_crossing_km is None)):
@@ -1100,6 +1101,12 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             not isfinite(gap_crossing_km) or
             not 0 <= gap_crossing_km <= 20015):
         raise ValueError("invalid reporter gap crossing threshold")
+    if min_crossing_margin_km is not None and (
+            gap_crossing_km is None or
+            type(min_crossing_margin_km) not in (int, float) or
+            not isfinite(min_crossing_margin_km) or
+            not 0 <= min_crossing_margin_km <= 20015):
+        raise ValueError("invalid minimum crossing margin")
     if min_gap_change_km is not None and (
             type(min_gap_change_km) not in (int, float) or
             not isfinite(min_gap_change_km) or
@@ -1131,6 +1138,13 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         if new <= gap_crossing_km < old:
             return "CROSSED_BELOW"
         return None
+    def crossing_margin(row):
+        direction = crossing(row)
+        if direction is None:
+            return None
+        later = row["later"]["separation_km"]["nearest_km"]
+        return (later - gap_crossing_km if direction == "CROSSED_ABOVE"
+                else gap_crossing_km - later)
     before = len(matrix["entities"])
     rows = [
         r for r in matrix["entities"]
@@ -1144,6 +1158,9 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
              (gap_crossing_direction is None or
               crossing(r) == {"above": "CROSSED_ABOVE",
                               "below": "CROSSED_BELOW"}[gap_crossing_direction])))
+        and (min_crossing_margin_km is None or
+             (crossing_margin(r) is not None and
+              crossing_margin(r) >= min_crossing_margin_km))
     ]
     if gap_crossing_km is not None:
         rows = [{**r, "reporter_gap_crossing": crossing(r)} for r in rows]
@@ -1173,6 +1190,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                    if gap_crossing_km is not None else {}),
                 **({"crossing_direction": gap_crossing_direction}
                    if gap_crossing_direction is not None else {}),
+                **({"minimum_crossing_margin_km": min_crossing_margin_km}
+                   if min_crossing_margin_km is not None else {}),
                 "order": gap_order or "entity",
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,

@@ -1,0 +1,42 @@
+id: WORK-0142
+title: "Prioritize significant original reporter threshold crossings"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Filter crossings by how far the later original reporter Point gap passes
+  the threshold on either time axis. Preserve evidence, never infer truth.
+scope:
+  in: ["Original nearest reporter Point gaps", "Crossing margin", "Read-only JSON CSV HTML GeoJSON and map"]
+  out: ["Physical movement", "Ground truth", "Stored World Model mutation", "New hosted API"]
+acceptance_criteria:
+  - {id: AC-1, description: "Only comparable original reports pass significant crossing margins.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Selected entities agree across matrix export and original-evidence maps.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Reject invalid parameters and retain byte-identical saved model.", status: IN_PROGRESS}
+depends_on: [WORK-0141]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.source_directory_global_pair_matrix, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Apply original gap crossing margin selection.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Expose strict local HTTP and native browser form.", depends_on: [T1], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T3, description: "Prove live HTTP parity, input rejection and immutable snapshot.", depends_on: [T2], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
