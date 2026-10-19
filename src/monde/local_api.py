@@ -1292,7 +1292,10 @@ def _reporter_evidence_offline_html(matrix: dict) -> bytes:
         '<th scope="col">Later reporting</th><th scope="col">Earlier gap</th>'
         '<th scope="col">Later gap</th><th scope="col">Transition</th>'
         '<th scope="col">Gap trend</th></tr></thead><tbody>' +
-        "".join(rows) + '</tbody></table>'
+        "".join(rows) + '</tbody></table>' +
+        ('<p>No entities match all selected comparison filters. '
+         'Original Point observations may still be present in the '
+         'source data files.</p>' if not rows else '')
         '<p>Extract this ZIP before opening this report to follow '
         'the relative links. Verify files against manifest.json for integrity.</p>'
         '</body></html>'
