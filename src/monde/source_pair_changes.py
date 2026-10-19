@@ -1366,6 +1366,10 @@ def source_directory_global_pair_witness_geojson(
         if focus_entity is not None and row["entity"] != focus_entity:
             continue
         for period in ("earlier", "later"):
+            # Keep analytical connectors within the same explicit time-window
+            # selection as original source Points and witness CSV rows.
+            if presence in ("earlier", "later") and period != presence:
+                continue
             nearest = row[period]["nearest_original_pair"]
             if nearest is None:
                 continue
