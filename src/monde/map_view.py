@@ -1490,10 +1490,12 @@ def _viewer_time_navigation(query: dict[str, str] | None) -> str:
         raise ValueError("invalid time navigation")
     mode = query["view"]
     fields = _VIEWER_TIME_FIELDS[mode]
-    if set(query) != set(fields) | {"view"} or any(
+    allowed = set(fields) | {"view"} | ({"source"} if mode in
+        set(_VIEWER_TIME_FIELDS) else set())
+    if not set(fields) | {"view"} <= set(query) or set(query) - allowed or any(
             type(value) is not str or len(value) > 256 for value in query.values()):
         raise ValueError("invalid time navigation")
-    if mode in {"current", "disagreements"}:
+    if mode in {"current", "disagreements"} and "source" not in query:
         options = "".join(
             '<option value="' + name + '"' + (' selected' if name == mode else '') +
             '>' + ("All source reports" if name == "current" else
@@ -1515,6 +1517,10 @@ def _viewer_time_navigation(query: dict[str, str] | None) -> str:
         'The original map area or search center is retained.</p>'
         '<form action="/viewer" method="get">' +
         view_field + inputs +
+        (('<label>Original source ID (optional)<input name="source" value="' +
+          html_escape(query.get("source", ""), quote=True) +
+          '" placeholder="e.g. survey-1"></label>') if mode in
+         {"current", "nearest", "radius"} or "source" in query else "") +
         '<button type="submit">Open evidence at selected times</button></form>'
         '</details></nav>')
 

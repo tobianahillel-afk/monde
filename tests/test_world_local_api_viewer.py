@@ -78,18 +78,18 @@ class BrowserViewerTests(unittest.TestCase):
         forms = FormReader()
         forms.feed(data.decode("utf-8"))
         expected = {
-            "current": {"view", "bbox", "at", "known_at"},
-            "disagreements": {"view", "bbox", "at", "known_at"},
-            "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at"},
-            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"},
-            "nearest": {"view", "center", "limit", "at", "known_at"},
-            "radius": {"view", "center", "radius_km", "at", "known_at"}
+            "current": {"view", "bbox", "at", "known_at", "source"},
+            "disagreements": {"view", "bbox", "at", "known_at", "source"},
+            "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at", "source"},
+            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at", "source"},
+            "nearest": {"view", "center", "limit", "at", "known_at", "source"},
+            "radius": {"view", "center", "radius_km", "at", "known_at", "source"}
         }
         self.assertEqual(len(forms.forms), 6)
         params = {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": K2,
                   "center": "2.3522,48.8566", "limit": "10", "radius_km": "5",
                   "from_known_at": K1, "to_known_at": K2,
-                  "from_at": EARLIER, "to_at": AT}
+                  "from_at": EARLIER, "to_at": AT, "source": "survey-1"}
         for form in forms.forms:
             self.assertEqual((form["action"], form["method"]), ("/viewer", "get"))
             fields = form["inputs"]

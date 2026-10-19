@@ -39,15 +39,52 @@ Endpoints (GET, all JSON):
   These are not verified physical movements.
 - `/map?bbox=1,45,6,51&at=...&known_at=...` — WorldMini's existing
   source-report GeoJSON, including conflicting coordinates.
-- `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
+- `/map?bbox=2.3,48.8,2.4,48.9&at=T&known_at=K&source=survey-1` — optional
+  **single-original-source** evidence lens. The source's own Point must
+  intersect the viewport to select an entity; the same source's other
+  positions for that entity remain visible as contrary reports. The response
+  preserves each assertion and its provenance, contains `monde_source_filter`,
+  and updates its displayed result counts. It does **not** imply that another
+  source agreed or that a position is verified physical truth. The same
+  optional filter is available in `/viewer?view=current&...` and its native
+  evidence/time-navigation forms. The same original-source lens now also
+  applies to `/map-knowledge-changes`, `/map-world-changes` and their
+  `/viewer` historical maps. Qualification requires a **changed report from
+  that source** inside the bbox at either cutoff; both old/new source reports
+  for qualifying entities remain, even if the other position is offscreen.
+  Source-specific counts exclude unrelated sources. Time differences are
+  source reports, never verified physical changes. The original-source filter
+  also supports `/map-disagreements` while retaining opposing evidence
+  needed to understand a cross-source conflict.
+  The local `/explore` form suggests source IDs that have at least one original
+  `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
+  appear as native browser suggestions; manually entering any valid source ID
+  still works. Suggestions do not assert that a source has an active Point at
+  the chosen world-time/knowledge-time cutoff. No browser script or network
+  dependency is added.
+- `/tile?z=5&x=16&y=11&at=...&known_at=...&source=survey-1` — GeoJSON for a WGS84
   viewport derived from a standard XYZ Web Mercator tile, including the original
   source Point assertions and tile metadata; this is not a raster tile service.
+  The optional `source` filter uses the same original-source-in-viewport
+  qualification as `/map`: a Point from a different source cannot qualify
+  the selected source's tile. When filtered, both `monde_bbox_query` and
+  `monde_tile_query` report the filtered status; requests without `source`
+  preserve the unfiltered output exactly.
 - `/nearest?center=2.3522,48.8566&limit=10&at=...&known_at=...` —
   nearest **source-reported** Point entities, ranked by approximate spherical
   distance, not inferred ground-truth positions (maximum 1000 entities).
 - `/radius?center=2.3522,48.8566&radius_km=5&at=...&known_at=...` —
   source Points within a radius, keeping conflicting out-of-radius reports of
   matched entities. Distance is not a measure of positional accuracy.
+- Both `/nearest` and `/radius` now accept optional `source=original-id`.
+  Nearby entities must qualify using **that source's own original Point**;
+  other sources cannot make them appear in the result. Nearest-N ranks are
+  recomputed using the selected source before applying the limit, never
+  obtained by filtering an already truncated global top-N list. The filtered
+  map preserves that source's original assertions and their evidence, and
+  adds `monde_source_filter`; unfiltered responses are unchanged. Both
+  filtered modes can be opened directly in `/viewer` and switched via the
+  existing native GET forms without state writes or remote requests.
 - `/timeline?entity=building-001&attribute=floors&from_at=T1&to_at=T2&known_at=K`
   — source-reported intervals and explicit UNKNOWN gaps, at fixed knowledge K.
 - `/compare-knowledge?entity=building-001&at=T&from_known_at=K1&to_known_at=K2`
@@ -283,3 +320,18 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+### Source-specific disagreement map (read-only)
+
+Choose an original `source` on the **Source disagreements** form, or request
+`/viewer?view=disagreements&bbox=...&at=...&known_at=...&source=SOURCE_ID`.
+The filtered `/map-disagreements` JSON route accepts the same optional
+`source`. An entity qualifies only when that source's **own** original Point
+is inside the WGS84 viewport **and** participates in a current cross-source
+contradiction. For each qualifying entity the response **retains every
+opposing original source report**, including positions outside the viewport:
+otherwise the claimed disagreement would appear without its evidence.
+Filtered JSON explicitly states `monde_source_filter_scope` and recalculates
+result counts. Without `source`, the original `/map-disagreements` response
+is unchanged. Nothing is reconciled into a true location, downloaded, or
+written to the saved snapshot.
