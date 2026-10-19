@@ -105,7 +105,8 @@ def verify_bundle(data: bytes) -> dict:
         raise BundleVerificationError("invalid or corrupted ZIP") from exc
 
 
-def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None) -> dict:
+def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
+                    inspect_changed: bool = False) -> dict:
     """Compare two verified original-reporter exports, without asserting truth.
 
     Repeated source reports are counted separately. Different selections,
@@ -116,6 +117,8 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None) -
                                or len(entity) > 512 or
                                any(ord(ch) < 32 for ch in entity)):
         raise BundleVerificationError("invalid entity selector")
+    if type(inspect_changed) is not bool or (inspect_changed and entity is not None):
+        raise BundleVerificationError("inspect_changed cannot be combined with entity")
     left = verify_bundle(before)
     right = verify_bundle(after)
     for key in ("schema", "source_a", "source_b", "axis"):
@@ -147,10 +150,21 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None) -
                 feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
                 for feature in points["features"]
                 if entity is not None and feature["properties"].get("entity") == entity)
-            return manifest, by_id, original, selected
+            grouped = {}
+            if inspect_changed:
+                for feature in points["features"]:
+                    name = feature["properties"].get("entity")
+                    if (not isinstance(name, str) or not name or len(name) > 512
+                            or any(ord(char) < 32 for char in name)):
+                        raise BundleVerificationError(
+                            "original Point missing a valid entity for batch inspection")
+                    serialized = json.dumps(
+                        feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                    grouped.setdefault(name, Counter())[serialized] += 1
+            return manifest, by_id, original, selected, grouped
 
-    left_manifest, left_rows, left_points, left_selected = contents(before)
-    right_manifest, right_rows, right_points, right_selected = contents(after)
+    left_manifest, left_rows, left_points, left_selected, left_grouped = contents(before)
+    right_manifest, right_rows, right_points, right_selected, right_grouped = contents(after)
     added = sorted(right_rows.keys() - left_rows.keys())
     removed = sorted(left_rows.keys() - right_rows.keys())
     common = left_rows.keys() & right_rows.keys()
@@ -178,30 +192,47 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None) -
         "authenticity": "NOT_ATTESTED",
         "interpretation": "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE",
     }
-    if entity is not None:
-        if (entity not in left_rows and entity not in right_rows
-                and not left_selected and not right_selected):
-            raise BundleVerificationError("entity absent from both verified exports")
-
+    def inspect_one(identifier, original_before, original_after):
         def changed_features(delta):
             return [{"feature": json.loads(raw), "count": count}
                     for raw, count in sorted(delta.items())]
 
-        result["entity_inspection"] = {
-            "entity": entity,
-            "before_matrix_row": (json.loads(left_rows[entity])
-                                  if entity in left_rows else None),
-            "after_matrix_row": (json.loads(right_rows[entity])
-                                 if entity in right_rows else None),
-            "original_points_before_count": sum(left_selected.values()),
-            "original_points_after_count": sum(right_selected.values()),
+        return {
+            "entity": identifier,
+            "before_matrix_row": (json.loads(left_rows[identifier])
+                                  if identifier in left_rows else None),
+            "after_matrix_row": (json.loads(right_rows[identifier])
+                                 if identifier in right_rows else None),
+            "original_points_before_count": sum(original_before.values()),
+            "original_points_after_count": sum(original_after.values()),
             "original_points_unchanged_count": sum(
-                (left_selected & right_selected).values()),
+                (original_before & original_after).values()),
             "original_points_added": changed_features(
-                right_selected - left_selected),
+                original_after - original_before),
             "original_points_removed": changed_features(
-                left_selected - right_selected),
+                original_before - original_after),
         }
+
+    if entity is not None:
+        if (entity not in left_rows and entity not in right_rows
+                and not left_selected and not right_selected):
+            raise BundleVerificationError("entity absent from both verified exports")
+        result["entity_inspection"] = inspect_one(
+            entity, left_selected, right_selected)
+    if inspect_changed:
+        # Include changes exclusively in original source Points even where the
+        # exported matrix row has not changed. Preserve repeated observations.
+        candidates = set(added) | set(removed) | set(changed)
+        for identifier in left_grouped.keys() | right_grouped.keys():
+            if left_grouped.get(identifier, Counter()) != right_grouped.get(
+                    identifier, Counter()):
+                candidates.add(identifier)
+        result["changed_entity_inspections"] = [
+            inspect_one(identifier,
+                        left_grouped.get(identifier, Counter()),
+                        right_grouped.get(identifier, Counter()))
+            for identifier in sorted(candidates)
+        ]
     return result
 
 
@@ -210,11 +241,14 @@ def main(argv=None):
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
     parser.add_argument("--compare", type=Path, metavar="OTHER_ZIP",
                         help="Compare verified export with another original-reporter ZIP")
-    parser.add_argument("--entity", metavar="ENTITY_ID",
-                        help="Inspect one entity's original reports in both verified exports")
+    selectors = parser.add_mutually_exclusive_group()
+    selectors.add_argument("--entity", metavar="ENTITY_ID",
+                           help="Inspect one entity's original reports in both verified exports")
+    selectors.add_argument("--inspect-changed", action="store_true",
+                           help="Inspect every changed matrix row or original Point report")
     args = parser.parse_args(argv)
-    if args.entity is not None and args.compare is None:
-        parser.error("--entity requires --compare")
+    if args.compare is None and (args.entity is not None or args.inspect_changed):
+        parser.error("--entity and --inspect-changed require --compare")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -225,7 +259,8 @@ def main(argv=None):
             if args.compare.stat().st_size > MAX_ARCHIVE:
                 raise BundleVerificationError("comparison archive exceeds safe size")
             result = compare_bundles(original, args.compare.read_bytes(),
-                                     entity=args.entity)
+                                     entity=args.entity,
+                                     inspect_changed=args.inspect_changed)
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1

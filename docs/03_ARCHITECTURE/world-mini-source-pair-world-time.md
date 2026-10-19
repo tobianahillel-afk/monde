@@ -1210,3 +1210,26 @@ manifest and role checks before comparison; neither ZIP is extracted,
 modified or sent to a server. Archive-internal SHA-256 hashes **do not attest**
 source authenticity; differences reflect *exported evidence*, not physical
 movement or independently established world truth.
+
+
+## Offline batch inspection of verified original evidence (WORK-0144)
+
+To inspect **every changed entity** between two independently verified original-reporter
+ZIP exports in one invocation, use:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip \\
+  --compare after.zip --inspect-changed
+```
+
+The `changed_entity_inspections` array contains the complete original Point
+features added/removed, multiplicity counts, and before/after matrix rows for
+entities whose matrix rows **or original source Points** changed. The output
+is deterministic by entity ID and retains unchanged original reports only as
+counts. Unchanged entities are omitted; original Points with no valid entity
+identifier make batch inspection fail instead of being silently dropped.
+Both ZIPs are verified before comparing and remain untouched. Flags
+`--entity` and `--inspect-changed` are mutually exclusive. The existing
+single-entity CLI/API outputs are unchanged. Differences may stem from
+selection filters or temporal cutoffs and do **not** attest to authenticity,
+world-state changes, physical movement or source reliability.

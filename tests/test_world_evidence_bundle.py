@@ -360,6 +360,77 @@ class TestOfflineEntityInspection(unittest.TestCase):
             self.assertEqual(no_compare.returncode, 2)
             self.assertIn("--entity requires --compare", no_compare.stderr)
 
+    def test_batch_inspection_detects_matrix_and_original_only_changes(self):
+        point_a = self._report("A", "survey-a", "original-1")
+        point_a_new = self._report("A", "survey-b", "original-2")
+        point_c = self._report("C", "survey-a", "source-only-before")
+        point_c_new = self._report("C", "survey-a", "source-only-after")
+        unchanged = self._report("D", "survey-b", "unchanged")
+        before = self._archive(
+            [{"entity": "A", "status": "before"}, {"entity": "B", "status": "removed"}],
+            [point_a, point_a, point_c, unchanged])
+        after = self._archive(
+            [{"entity": "A", "status": "after"}, {"entity": "E", "status": "added"}],
+            [point_a, point_a_new, point_c_new, unchanged])
+        result = compare_bundles(before, after, inspect_changed=True)
+        found = {row["entity"]: row for row in result["changed_entity_inspections"]}
+        self.assertEqual(sorted(found), ["A", "B", "C", "E"])
+        self.assertEqual(found["A"]["original_points_removed"][0]["count"], 1)
+        self.assertEqual(found["A"]["original_points_added"][0]["feature"]
+                         ["properties"]["assertion_id"], "original-2")
+        self.assertEqual(found["A"]["original_points_unchanged_count"], 1)
+        self.assertIsNone(found["B"]["after_matrix_row"])
+        self.assertIsNone(found["E"]["before_matrix_row"])
+        self.assertIsNone(found["C"]["before_matrix_row"])
+        self.assertEqual(found["C"]["original_points_added"][0]["feature"]
+                         ["properties"]["assertion_id"], "source-only-after")
+        self.assertNotIn('"unchanged"', json.dumps(found))
+        self.assertEqual(result["authenticity"], "NOT_ATTESTED")
+        self.assertEqual(result["interpretation"],
+                         "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+
+    def test_batch_inspection_of_identical_verified_archives_is_empty(self):
+        data = self._archive([], [])
+        result = compare_bundles(data, data, inspect_changed=True)
+        self.assertEqual(result["changed_entity_inspections"], [])
+        self.assertNotIn("entity_inspection", result)
+
+    def test_batch_inspection_rejects_unattributable_original_point(self):
+        report = self._report("A", "survey-a", "missing-entity")
+        report["properties"].pop("entity")
+        packed = self._archive([], [report])
+        with self.assertRaisesRegex(BundleVerificationError, "valid entity"):
+            compare_bundles(packed, packed, inspect_changed=True)
+
+    def test_batch_inspection_cli_json_and_immutable_archives(self):
+        previous = self._archive([], [])
+        latest = self._archive([{"entity": "A", "status": "added"}],
+                               [self._report("A", "survey-a", "new-assertion")])
+        with tempfile.TemporaryDirectory() as folder:
+            before = Path(folder) / "before.zip"
+            after = Path(folder) / "after.zip"
+            before.write_bytes(previous)
+            after.write_bytes(latest)
+            cmd = [sys.executable, "-m", "monde.evidence_bundle",
+                   str(before), "--compare", str(after), "--inspect-changed"]
+            run = subprocess.run(cmd, text=True, capture_output=True, check=False)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            body = json.loads(run.stdout)
+            self.assertEqual([r["entity"] for r in body["changed_entity_inspections"]],
+                             ["A"])
+            self.assertEqual(body["changed_entity_inspections"][0]
+                             ["original_points_added"][0]["feature"]
+                             ["properties"]["evidence_id"], "doc-new-assertion")
+            self.assertEqual(before.read_bytes(), previous)
+            self.assertEqual(after.read_bytes(), latest)
+            for tail in (["--inspect-changed"],
+                         ["--compare", str(after), "--entity", "A",
+                          "--inspect-changed"]):
+                invalid = subprocess.run(
+                    [sys.executable, "-m", "monde.evidence_bundle", str(before), *tail],
+                    text=True, capture_output=True, check=False)
+                self.assertEqual(invalid.returncode, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
