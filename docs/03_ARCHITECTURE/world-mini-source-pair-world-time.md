@@ -887,3 +887,16 @@ reporters produce an empty original-evidence selection, not fabricated data.
 Exact reporter focus is rejected for non-global formats and may not be
 combined with the directory's `source_prefix`. No endpoint, dependency,
 source snapshot or inference semantics change.
+
+### Compare two original reporters globally (WORK-0132 candidate)
+
+The existing read-only `/source-pair?directory=1` reporter directory offers
+a native comparison of two distinct original source IDs across all entities.
+The `compare_a` and `compare_b` parameters must occur together, apply to
+`presence-all-map`, `presence-all-geojson`, `presence-all-csv` and
+`presence-all-gpkg`, and share the original assertion/evidence Point identity
+selector with both bitemporal cutoffs and optional area/presence filters.
+Source-prefix, entity, and exact-single-reporter scopes cannot be mixed with a
+two-reporter selection. Unrecognized reporter IDs never fabricate evidence.
+This is an overlay of the original reported positions, not a verified location,
+consensus, disagreement diagnosis, or physical movement.
