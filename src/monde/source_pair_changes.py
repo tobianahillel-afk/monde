@@ -867,7 +867,7 @@ def _valid_presence_bbox(bbox):
     return west, south, east, north
 
 
-def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
+def source_directory_all_presence_geojson(world, directory, presence=None, bbox=None):
     """One offline GIS layer of original source Points across *all* entities.
 
     Export only the original sources selected by the existing source directory
@@ -925,7 +925,7 @@ def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=Non
             "geometry": original["geometry"], "properties": props,
         })
     coverage = {
-        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1",
+        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_ALL_V1",
         "axis": directory["axis"], "cutoffs": directory["cutoffs"],
         "selected_sources": len(sources),
         "original_report_count": len(features),
@@ -938,10 +938,50 @@ def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=Non
             "Original source Point presence across two cutoffs; not "
             "inferred truth, movement or a consensus position"),
     }
-    return _presence_geojson_to_gpkg({
-        "type": "FeatureCollection", "features": features,
-        "monde_source_coverage": coverage,
-    })
+    return {"type": "FeatureCollection", "features": features,
+            "monde_source_coverage": coverage}
+
+
+def source_directory_all_presence_csv(world, directory, presence=None, bbox=None):
+    """Spreadsheet-safe original Point identities, using the global GeoJSON selection."""
+    features = source_directory_all_presence_geojson(
+        world, directory, presence, bbox)["features"]
+    earlier, later = directory["cutoffs"]["earlier"], directory["cutoffs"]["later"]
+
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(
+            ("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    result = io.StringIO(newline="")
+    writer = csv.writer(result, lineterminator="\r\n")
+    writer.writerow(("feature_id", "entity", "source_id", "assertion_id",
+                     "evidence_id", "longitude", "latitude", "earlier_visible",
+                     "later_visible", "visibility_transition",
+                     "earlier_world_at", "earlier_known_at", "later_world_at",
+                     "later_known_at", "original_properties_json"))
+    for feature in features:
+        props = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        writer.writerow((
+            safe(feature["id"]), safe(props["entity"]),
+            safe(props["source_id"]), safe(props["monde_original_assertion_id"]),
+            safe(props["evidence_id"]), lon, lat,
+            int(props["earlier_visible"]), int(props["later_visible"]),
+            props["monde_visibility_transition"],
+            earlier["world_at"], earlier["knowledge_at"],
+            later["world_at"], later["knowledge_at"],
+            json.dumps(props, ensure_ascii=False, sort_keys=True,
+                       separators=(",", ":"))))
+    return result.getvalue()
+
+
+def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
+    """Convert the same evidence selection to the original offline GIS format."""
+    result = source_directory_all_presence_geojson(world, directory, presence, bbox)
+    result["monde_source_coverage"]["schema"] = (
+        "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1")
+    return _presence_geojson_to_gpkg(result)
 
 
 def _presence_geojson_to_gpkg(geojson):

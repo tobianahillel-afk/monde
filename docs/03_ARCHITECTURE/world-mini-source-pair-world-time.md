@@ -835,3 +835,26 @@ Each exported geometry is an original source-reported Point inside the region,
 not an inferred position or consensus. The GeoPackage's `monde_coverage`
 records `bbox_filter`; the RTree covers exactly the selected rows. An empty
 region exports a valid empty GeoPackage. No persisted WorldMini data is changed.
+
+## Global original Point GeoJSON (WORK-0130)
+
+The local source directory now offers `format=presence-all-geojson` for all
+selected reporters and entities, including optional inclusive, dateline-wrapped
+`bbox` and source/presence filters. This output and the existing global
+GeoPackage use the **same original assertion selector**, preserving exact
+identities, provenance, world/knowledge cutoffs and earlier/later visibility.
+The browser exposes global and area GeoJSON downloads. There is no inferred
+consensus, new service, dependency or persisted WorldMini mutation.
+
+
+## Global original Point CSV (WORK-0130)
+
+The existing read-only `/source-pair?directory=1` exports original Points as
+`format=presence-all-csv`, globally or within a WGS84 bbox (including the
+wrapped antimeridian). Exactly the same source-prefix, presence-transition and
+spatial selector as global GeoJSON/GeoPackage is reused, so no location is
+inferred. Each row retains original feature/entity/source/assertion/evidence
+identifiers, original coordinates, both world/knowledge cutoffs, temporal
+visibility and all original feature properties as JSON. User-controlled text
+cells escape leading spreadsheet formulas. Existing read-only HTTP response
+size, attachment and no-store protections apply; no new external dependency.
