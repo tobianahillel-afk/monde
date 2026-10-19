@@ -253,5 +253,113 @@ class TestOfflineBundleComparison(unittest.TestCase):
             self.assertEqual(other.read_bytes(), data)
 
 
+class TestOfflineEntityInspection(unittest.TestCase):
+    """Compare verifiable exact source reports for one entity, not inferred movement."""
+
+    @staticmethod
+    def _archive(rows, features):
+        docs = fixture()
+        matrix = json.loads(docs["matrix.json"])
+        matrix["entities"] = rows
+        matrix["total_entities"] = len(rows)
+        docs["matrix.json"] = json.dumps(matrix, sort_keys=True).encode()
+        docs["original-points.geojson"] = json.dumps({
+            "type": "FeatureCollection", "features": features
+        }, sort_keys=True).encode()
+        manifest = json.loads(docs["manifest.json"])
+        for name in ("matrix.json", "original-points.geojson"):
+            payload = docs[name]
+            manifest["files"][name] = {
+                "bytes": len(payload), "sha256": sha256(payload).hexdigest()
+            }
+        docs["manifest.json"] = json.dumps(manifest, sort_keys=True).encode()
+        return pack(docs)
+
+    @staticmethod
+    def _report(entity, source, assertion):
+        return {"type": "Feature", "geometry": {
+            "type": "Point", "coordinates": [2.3, 48.2]
+        }, "properties": {"entity": entity, "source_id": source,
+                          "assertion_id": assertion, "evidence_id": "doc-" + assertion,
+                          "monde_original_observation": True}}
+
+    def test_original_assertion_counts_and_matrix_deltas_for_one_entity(self):
+        old = self._report("A", "survey-a", "original-1")
+        new = self._report("A", "survey-b", "original-2")
+        unrelated = self._report("B", "survey-a", "unrelated")
+        before = self._archive([{"entity": "A", "reporting_transition": "UNKNOWN"}],
+                               [old, old, unrelated])
+        after = self._archive([{"entity": "A", "reporting_transition": "CHANGED"}],
+                              [old, new, unrelated])
+        result = compare_bundles(before, after, entity="A")
+        detail = result["entity_inspection"]
+        self.assertEqual(detail["before_matrix_row"]["reporting_transition"], "UNKNOWN")
+        self.assertEqual(detail["after_matrix_row"]["reporting_transition"], "CHANGED")
+        self.assertEqual(detail["original_points_before_count"], 2)
+        self.assertEqual(detail["original_points_after_count"], 2)
+        self.assertEqual(detail["original_points_unchanged_count"], 1)
+        self.assertEqual(detail["original_points_removed"][0]["count"], 1)
+        self.assertEqual(detail["original_points_removed"][0]["feature"]["properties"]
+                         ["assertion_id"], "original-1")
+        self.assertEqual(detail["original_points_added"][0]["feature"]["properties"]
+                         ["assertion_id"], "original-2")
+        self.assertEqual(result["original_points_added"], 1)
+        self.assertEqual(result["original_points_removed"], 1)
+        self.assertEqual(result["authenticity"], "NOT_ATTESTED")
+        self.assertEqual(result["interpretation"],
+                         "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+
+    def test_selected_entity_can_disappear_and_unrelated_originals_are_not_leaked(self):
+        p = self._report("A", "survey-a", "gone")
+        b = self._report("B", "survey-b", "stay")
+        before = self._archive([{"entity": "A", "earlier": {"status": "PRESENT"}}],
+                               [p, b])
+        after = self._archive([], [b])
+        detail = compare_bundles(before, after, entity="A")["entity_inspection"]
+        self.assertEqual(detail["before_matrix_row"]["entity"], "A")
+        self.assertIsNone(detail["after_matrix_row"])
+        self.assertEqual(detail["original_points_removed"][0]["feature"]
+                         ["properties"]["entity"], "A")
+        self.assertEqual(detail["original_points_added"], [])
+        self.assertNotIn('"unrelated"', json.dumps(detail))
+
+    def test_absent_and_invalid_selectors_do_not_invent_evidence(self):
+        zipped = self._archive([], [])
+        for bad in ("", "A\nB", "A" * 513):
+            with self.subTest(selector=repr(bad)):
+                with self.assertRaisesRegex(BundleVerificationError,
+                                            "invalid entity selector"):
+                    compare_bundles(zipped, zipped, entity=bad)
+        with self.assertRaisesRegex(BundleVerificationError, "absent"):
+            compare_bundles(zipped, zipped, entity="missing")
+
+    def test_actual_offline_cli_reports_entity_provenance_and_preserves_archives(self):
+        source = self._report("A", "survey-a", "a-1")
+        before = self._archive([], [])
+        after = self._archive([{"entity": "A", "later": {"status": "OBSERVED"}}],
+                              [source])
+        with tempfile.TemporaryDirectory() as folder:
+            old = Path(folder) / "before.zip"
+            new = Path(folder) / "after.zip"
+            old.write_bytes(before)
+            new.write_bytes(after)
+            cmd = [sys.executable, "-m", "monde.evidence_bundle",
+                   str(old), "--compare", str(new), "--entity", "A"]
+            outcome = subprocess.run(cmd, text=True, capture_output=True,
+                                     check=False)
+            self.assertEqual(outcome.returncode, 0, outcome.stderr)
+            body = json.loads(outcome.stdout)
+            self.assertEqual(body["entity_inspection"]["original_points_added"]
+                             [0]["feature"]["properties"]["evidence_id"], "doc-a-1")
+            self.assertEqual(body["authenticity"], "NOT_ATTESTED")
+            self.assertEqual(old.read_bytes(), before)
+            self.assertEqual(new.read_bytes(), after)
+            no_compare = subprocess.run(
+                [sys.executable, "-m", "monde.evidence_bundle", str(old),
+                 "--entity", "A"], text=True, capture_output=True, check=False)
+            self.assertEqual(no_compare.returncode, 2)
+            self.assertIn("--entity requires --compare", no_compare.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

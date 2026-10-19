@@ -1,0 +1,44 @@
+id: WORK-0144
+title: "Inspect one original reporter's entity-level evidence across verified exports"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Show exact per-entity matrix rows and original Point evidence additions/removals
+  between two locally verified source reporter ZIP archives, without server,
+  hidden inference, data mutation or additional runtime dependency.
+scope:
+  in: ["Offline original evidence drilldown", "Duplicate observation multiplicity",
+       "Original source/assertion/evidence provenance", "CLI JSON"]
+  out: ["Source authenticity claim", "Inferred physical movement",
+        "World state reconciliation", "Network access"]
+acceptance_criteria:
+  - {id: AC-1, description: "CLI exposes exact per-entity original evidence changes.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Both archives are verified before inspection and originals remain unchanged.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Absent entities and bad selectors fail closed; no duplicate observations lost.", status: IN_PROGRESS}
+depends_on: [WORK-0143]
+requirements: []
+read_before: [AGENTS.md, src/monde/evidence_bundle.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.evidence_bundle.verify_bundle, monde.evidence_bundle.compare_bundles]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add offline per-entity exact source and report comparison.", depends_on: [], expected_files: [src/monde/evidence_bundle.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify original archive integrity and CLI behavior.", depends_on: [T1], expected_files: [tests/test_world_evidence_bundle.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_evidence_bundle.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
