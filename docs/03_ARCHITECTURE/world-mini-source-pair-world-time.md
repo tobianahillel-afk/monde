@@ -952,3 +952,18 @@ filtering, while `total_entities`, `entities` and `per_period` refer to
 matching rows. `total_original_reports` remains the pre-transition selected
 source evidence feature count. Unknown filter values and use on other formats
 fail with HTTP 400. No new dependency, endpoint, database or stored-world write.
+
+
+## WORK-0135 — Map original evidence behind reporter transitions
+
+The existing global two-reporter matrix links to format=presence-all-compare-map and
+format=presence-all-compare-geojson. Both operate on original source Point reports
+matching the chosen transition classification, source pair, earlier/later presence,
+two temporal cutoffs and optional WGS84 bbox (including the antimeridian).
+
+Every feature retains its original source, assertion, evidence and coordinate
+identifiers, with an added monde_reporting_transition classification. The outputs
+never infer a physical movement, a consensus location or verified ground truth.
+The GeoJSON includes filtered/unfiltered matrix counts, and an empty match yields
+an empty evidence map. No new endpoint, dependency, external service or mutation
+of the persisted WorldMini snapshot.

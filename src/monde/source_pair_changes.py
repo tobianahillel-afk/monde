@@ -1064,6 +1064,51 @@ def filter_reporter_matrix_transitions(matrix, transition=None):
             **({"transition_filter": transition} if transition else {})}
 
 
+
+def source_directory_global_pair_transition_geojson(
+        world, directory, matrix, presence=None, bbox=None, for_map=False):
+    """Map original Point evidence for the selected reporter-matrix entities.
+
+    Evidence changes are not proven physical changes or consensus.
+    """
+    if matrix.get("schema") != "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1":
+        raise ValueError("original reporter matrix required")
+    sources = (matrix["source_a"], matrix["source_b"])
+    exporter = (source_directory_all_presence_map if for_map else
+                source_directory_all_presence_geojson)
+    geojson = exporter(world, directory, presence, bbox,
+                       source_compare=sources)
+    categories = {row["entity"]: row["reporting_transition"]
+                  for row in matrix["entities"]}
+    geojson["features"] = [
+        {**feature, "properties": {**feature["properties"],
+         "monde_reporting_transition": categories[feature["properties"]["entity"]]}}
+        for feature in geojson["features"]
+        if feature["properties"]["entity"] in categories]
+    count = len(geojson["features"])
+    coverage = geojson["monde_source_coverage"]
+    coverage["original_report_count"] = count
+    coverage["distinct_entities"] = len(categories)
+    coverage["reporter_matrix"] = {
+        "source_a": sources[0], "source_b": sources[1],
+        "matching_entities": matrix["total_entities"],
+        "all_entities": matrix["total_entities_unfiltered"],
+        "transition_counts": matrix["transition_counts"],
+        **({"transition_filter": matrix["transition_filter"]}
+           if "transition_filter" in matrix else {})}
+    coverage["interpretation"] = (
+        "Original source Point evidence from selected reporter-matrix entities; "
+        "no inferred movement, verified position, consensus or truth; "
+        "missing reports remain UNKNOWN.")
+    if for_map:
+        display = geojson["monde_bbox_query"]
+        display["total_matching_entities"] = len(categories)
+        display["total_source_features"] = count
+        display["status"] = "MATCHES" if count else "NO_MATCHES"
+        if bbox is None:
+            display["bbox"] = _source_display_bbox(geojson["features"])
+    return geojson
+
 def source_directory_global_pair_matrix_csv(matrix):
     """Export exact reporter-presence matrix rows without inventing agreement.
 

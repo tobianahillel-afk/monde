@@ -3539,5 +3539,78 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertEqual(json.loads(body), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_reporter_matrix_transition_map_reuses_exact_original_point_evidence(self):
+        """Persisted loopback HTTP: matrix -> GeoJSON -> offline map, both axes."""
+        for cutoffs in (
+                self.knowledge(),
+                {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN}):
+            base = {**cutoffs, "compare_a": "survey-a",
+                    "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+            status, _, original_raw = self.get({
+                **base, "format": "presence-all-geojson"})
+            self.assertEqual(status, 200)
+            original = json.loads(original_raw)["features"]
+            for selection in (None, "reporters-changed",
+                              "evidence-changed", "unchanged"):
+                query = dict(base)
+                if selection is not None:
+                    query["transition"] = selection
+                status, _, matrix_raw = self.get({
+                    **query, "format": "presence-all-compare-json"})
+                self.assertEqual(status, 200)
+                matrix = json.loads(matrix_raw)
+                categories = {row["entity"]: row["reporting_transition"]
+                              for row in matrix["entities"]}
+                expected = [feature for feature in original
+                            if feature["properties"]["entity"] in categories]
+                status, _, raw = self.get({
+                    **query, "format": "presence-all-compare-geojson"})
+                self.assertEqual(status, 200)
+                actual = json.loads(raw)
+                self.assertEqual([f["id"] for f in actual["features"]],
+                                 [f["id"] for f in expected])
+                for found, prior in zip(actual["features"], expected):
+                    props = dict(found["properties"])
+                    self.assertEqual(
+                        props.pop("monde_reporting_transition"),
+                        categories[props["entity"]])
+                    self.assertEqual(props, prior["properties"])
+                    self.assertEqual(found["geometry"], prior["geometry"])
+                coverage = actual["monde_source_coverage"]
+                self.assertEqual(coverage["original_report_count"], len(expected))
+                self.assertEqual(coverage["distinct_entities"], len(categories))
+                self.assertEqual(coverage["reporter_matrix"]["matching_entities"],
+                                 matrix["total_entities"])
+                status, _, html = self.get({
+                    **query, "format": "presence-all-compare-map"})
+                self.assertEqual(status, 200)
+                self.assertIn(b"<!doctype html>", html.lower())
+            self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_transition_map_strict_scope_and_empty_originals(self):
+        base = {**self.knowledge(), "compare_a": "missing-a",
+                "compare_b": "missing-b"}
+        status, _, raw = self.get({
+            **base, "transition": "reporters-changed",
+            "format": "presence-all-compare-geojson"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["features"], [])
+        self.assertEqual(doc["monde_source_coverage"]
+                         ["reporter_matrix"]["matching_entities"], 0)
+        for invalid in ({"compare_b": "missing-a"}, {"transition": "no-such"},
+                        {"source_prefix": "missing"}, {"source_exact": "missing-a"},
+                        {"entity": "site-1"}):
+            for fmt in ("presence-all-compare-map",
+                        "presence-all-compare-geojson"):
+                status, _, raw = self.get({**base, **invalid, "format": fmt})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for fmt in ("presence-all-compare-map", "presence-all-compare-geojson"):
+            self.assertEqual(self.get({**self.knowledge(), "format": fmt})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

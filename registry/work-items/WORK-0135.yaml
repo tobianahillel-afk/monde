@@ -1,0 +1,43 @@
+id: WORK-0135
+title: "Map original two-reporter evidence transitions"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Show the exact original Point evidence behind the selected entity-level
+  source-reporter matrix transition classifications on the existing map.
+scope:
+  in: ["Original reporter transition GeoJSON and map", "Bitemporal and WGS84 filters", "Read-only persisted HTTP parity"]
+  out: ["Inferred physical movement or truth", "New services", "World Model mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Export original selected source Points for matching matrix transitions.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Open matching evidence on existing offline map.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verify persisted HTTP original evidence parity and no mutation.", status: IN_PROGRESS}
+depends_on: [WORK-0134]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.source_directory_global_pair_matrix, monde.source_pair_changes.source_directory_all_presence_geojson, monde.source_pair_changes.source_directory_all_presence_map, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Filter original Points by reporter-matrix transition.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Expose map and GeoJSON via existing loopback source directory.", depends_on: [T1], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T3, description: "Prove persisted HTTP original evidence identity and immutability.", depends_on: [T2], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0134 / PR #163 and its ancestors."]
