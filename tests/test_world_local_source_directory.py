@@ -4994,6 +4994,28 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
+    def test_two_live_reporter_zip_exports_compare_offline_without_mutation(self):
+        from monde.evidence_bundle import compare_bundles
+        for basis in (self.knowledge(),
+                      {"directory": "1", "axis": "world",
+                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            common = {**basis, "compare_a": "survey-a", "compare_b": "survey-b",
+                      "format": "presence-all-compare-bundle"}
+            baseline_code, _, baseline = self.get(common)
+            selected_code, _, selected = self.get(
+                {**common, "gap_crossing_km": "1"})
+            self.assertEqual((baseline_code, selected_code), (200, 200))
+            compared = compare_bundles(baseline, selected)
+            self.assertTrue(compared["valid"])
+            self.assertEqual(compared["axis"], basis["axis"])
+            self.assertTrue(compared["selection_or_cutoffs_differ"])
+            self.assertEqual(compared["authenticity"], "NOT_ATTESTED")
+            self.assertEqual(compared["interpretation"],
+                             "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+            self.assertIsInstance(compared["original_points_added"], int)
+            self.assertIsInstance(compared["entities_changed"], list)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
     def test_original_reporter_bundle_offline_report_escapes_untrusted_labels(self):
         from monde.local_api import _reporter_evidence_offline_html
         entity = '<img src=x onerror="alert(1)">'

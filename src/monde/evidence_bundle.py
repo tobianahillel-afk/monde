@@ -159,7 +159,7 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
         "before_cutoffs": left_manifest["cutoffs"],
         "after_cutoffs": right_manifest["cutoffs"],
         "selection_or_cutoffs_differ": (
-            left_manifest.get("filters") != right_manifest.get("filters")
+            left_manifest.get("selection") != right_manifest.get("selection")
             or left_manifest["cutoffs"] != right_manifest["cutoffs"]),
         "entities_added": added, "entities_removed": removed,
         "entities_changed": changed,

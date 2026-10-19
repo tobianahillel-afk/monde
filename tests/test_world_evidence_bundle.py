@@ -208,6 +208,17 @@ class TestOfflineBundleComparison(unittest.TestCase):
         self.assertTrue(result["selection_or_cutoffs_differ"])
         self.assertEqual(result["entities_changed"], [])
 
+    def test_selection_change_is_visible_even_if_entities_are_unchanged(self):
+        earlier = fixture()
+        later = fixture()
+        manifest = json.loads(later["manifest.json"])
+        manifest["selection"] = {"gap_crossing_km": "1"}
+        later["manifest.json"] = json.dumps(manifest).encode()
+        result = compare_bundles(pack(earlier), pack(later))
+        self.assertTrue(result["selection_or_cutoffs_differ"])
+        self.assertEqual(result["entities_changed"], [])
+        self.assertEqual(result["changed_files"], [])
+
     def test_mismatched_sources_and_broken_hash_never_compare(self):
         before = fixture()
         unrelated = fixture()
