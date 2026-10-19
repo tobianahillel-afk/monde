@@ -776,3 +776,18 @@ Exact entity, optional original reporter and presence filters apply equally
 to GPX, GeoJSON, KML and KMZ. Unknown query parameters are rejected, no
 saved-model bytes are modified, and no motion, consensus or verified ground
 truth is inferred. No additional runtime dependency or hosted service.
+
+
+## Original Point presence GeoPackage (WORK-0129)
+
+The existing read-only source-pair entity directory can export `format=presence-gpkg`
+for a single entity, optionally scoped by exact source and temporal presence.
+The download is an OGC GeoPackage 1.3 SQLite `.gpkg` with a WGS84
+`original_points` Point feature table, one feature per original
+source/assertion/evidence/coordinate identity (not once per cutoff).
+Each row contains source and temporal visibility columns plus
+`original_properties_json`; a `monde_coverage` metadata table preserves
+the complete bitemporal coverage cutoffs and provenance selection. No route,
+trajectory, consensus location, remote data or WorldMini mutation is inferred.
+The file is generated temporarily and returned only through the existing
+loopback-only GET endpoint; `max_response_bytes` is enforced.

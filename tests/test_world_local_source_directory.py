@@ -2449,3 +2449,100 @@ class SourceDirectoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_original_presence_gpkg_opens_in_sqlite_with_exact_original_points(self):
+        """Roundtrip actual loopback HTTP and OGC GeoPackage/WKB semantics."""
+        import sqlite3
+        import struct
+        from tempfile import NamedTemporaryFile
+        from pathlib import Path
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, headers, blob = self.get({**query, "format": "presence-gpkg"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/geopackage+sqlite3")
+        self.assertIn(".gpkg", headers["Content-Disposition"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertTrue(blob.startswith(b"SQLite format 3\x00"))
+        original = json.loads(self.get({**query, "format": "presence-geojson"})[2])
+        with NamedTemporaryFile(suffix=".gpkg") as file:
+            Path(file.name).write_bytes(blob)
+            db = sqlite3.connect(file.name)
+            try:
+                self.assertEqual(db.execute("PRAGMA application_id").fetchone()[0],
+                                 0x47504B47)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 10300)
+                self.assertEqual(db.execute(
+                    "SELECT table_name,data_type,srs_id FROM gpkg_contents"
+                ).fetchone(), ("original_points", "features", 4326))
+                self.assertEqual(db.execute(
+                    "SELECT geometry_type_name,srs_id,z,m FROM gpkg_geometry_columns"
+                ).fetchone(), ("POINT", 4326, 0, 0))
+                coverage = json.loads(db.execute(
+                    "SELECT coverage_json FROM monde_coverage WHERE id=1"
+                ).fetchone()[0])
+                self.assertEqual(coverage, original["monde_source_coverage"])
+                rows = db.execute(
+                    "SELECT feature_id,source_id,assertion_id,evidence_id,"
+                    "earlier_visible,later_visible,visibility_transition,"
+                    "original_properties_json,geom FROM original_points ORDER BY fid"
+                ).fetchall()
+                self.assertEqual(len(rows), len(original["features"]))
+                for row, feature in zip(rows, original["features"]):
+                    p = feature["properties"]
+                    self.assertEqual(row[:4], (
+                        feature["id"], p["source_id"],
+                        p["monde_original_assertion_id"], p["evidence_id"]))
+                    self.assertEqual(row[4:7], (
+                        int(p["earlier_visible"]), int(p["later_visible"]),
+                        p["monde_visibility_transition"]))
+                    self.assertEqual(json.loads(row[7]), p)
+                    geom = row[8]
+                    self.assertEqual(geom[:2], b"GP")
+                    self.assertEqual(struct.unpack("<BBI", geom[2:8]), (0, 1, 4326))
+                    self.assertEqual(struct.unpack("<BI", geom[8:13]), (1, 1))
+                    self.assertEqual(list(struct.unpack("<dd", geom[13:29])),
+                                     feature["geometry"]["coordinates"])
+            finally:
+                db.close()
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_presence_gpkg_filter_empty_invalid_and_navigation(self):
+        import sqlite3
+        from pathlib import Path
+        from tempfile import NamedTemporaryFile
+        params = {**self.knowledge(), "entity": "site-1"}
+        self.assertIn(b"Download original Point evidence GeoPackage",
+                      self.get({**params, "format": "table"})[2])
+        self.assertIn(b"Download matching GeoPackage",
+                      self.get({**params, "format": "presence-table"})[2])
+        for source in ("survey-a", "survey-b"):
+            for selected in ("earlier", "later", "both"):
+                query = {**params, "source": source, "presence": selected}
+                actual = self.get({**query, "format": "presence-gpkg"})
+                expected = json.loads(
+                    self.get({**query, "format": "presence-geojson"})[2])
+                self.assertEqual(actual[0], 200)
+                with NamedTemporaryFile(suffix=".gpkg") as file:
+                    Path(file.name).write_bytes(actual[2])
+                    with sqlite3.connect(file.name) as db:
+                        self.assertEqual(
+                            db.execute("SELECT count(*) FROM original_points").fetchone()[0],
+                            len(expected["features"]))
+                        self.assertEqual(json.loads(db.execute(
+                            "SELECT coverage_json FROM monde_coverage").fetchone()[0]),
+                            expected["monde_source_coverage"])
+        empty = self.get({**params, "entity": "missing",
+                          "format": "presence-gpkg"})
+        self.assertEqual(empty[0], 200)
+        with NamedTemporaryFile(suffix=".gpkg") as file:
+            Path(file.name).write_bytes(empty[2])
+            with sqlite3.connect(file.name) as db:
+                self.assertEqual(db.execute(
+                    "SELECT count(*) FROM original_points").fetchone()[0], 0)
+        for query in ({**self.knowledge(), "format": "presence-gpkg"},
+                      {**params, "format": "presence-gpkg", "presence": "bad"},
+                      {**params, "format": "presence-gpkg", "unknown": "bad"},
+                      {**params, "format": "presence-gpkg", "source": "survey-a",
+                       "assertion": "partial"}):
+            self.assertEqual(self.get(query)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)

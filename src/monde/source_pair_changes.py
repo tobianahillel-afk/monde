@@ -842,6 +842,99 @@ def source_directory_entity_presence_gpx(world, directory, presence=None):
 
 
 
+def source_directory_entity_presence_gpkg(world, directory, presence=None):
+    """Offline OGC GeoPackage 1.3 with original WGS84 Points and full provenance.
+
+    The data is a temporary, local SQLite file, not a write to the WorldMini
+    snapshot. Each Point is a distinct *source report*, never consensus truth.
+    """
+    from pathlib import Path
+    import sqlite3
+    import struct
+    import tempfile
+
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    features = geojson["features"]
+    coordinates = [f["geometry"]["coordinates"] for f in features]
+    extents = ((min(p[0] for p in coordinates), min(p[1] for p in coordinates),
+                max(p[0] for p in coordinates), max(p[1] for p in coordinates))
+               if coordinates else (None, None, None, None))
+    with tempfile.TemporaryDirectory(prefix="monde-presence-gpkg-") as folder:
+        target = Path(folder) / "original-presence.gpkg"
+        with sqlite3.connect(target) as db:
+            db.execute("PRAGMA application_id=0x47504B47")
+            db.execute("PRAGMA user_version=10300")
+            db.executescript("""
+                CREATE TABLE gpkg_spatial_ref_sys (
+                  srs_name TEXT NOT NULL, srs_id INTEGER NOT NULL PRIMARY KEY,
+                  organization TEXT NOT NULL, organization_coordsys_id INTEGER NOT NULL,
+                  definition TEXT NOT NULL, description TEXT
+                );
+                CREATE TABLE gpkg_contents (
+                  table_name TEXT NOT NULL PRIMARY KEY, data_type TEXT NOT NULL,
+                  identifier TEXT UNIQUE, description TEXT DEFAULT '',
+                  last_change DATETIME NOT NULL,
+                  min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE,
+                  srs_id INTEGER
+                );
+                CREATE TABLE gpkg_geometry_columns (
+                  table_name TEXT NOT NULL, column_name TEXT NOT NULL,
+                  geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL,
+                  z TINYINT NOT NULL, m TINYINT NOT NULL,
+                  PRIMARY KEY (table_name, column_name)
+                );
+                CREATE TABLE original_points (
+                  fid INTEGER PRIMARY KEY AUTOINCREMENT,
+                  feature_id TEXT NOT NULL UNIQUE, entity TEXT NOT NULL,
+                  source_id TEXT NOT NULL, assertion_id TEXT NOT NULL,
+                  evidence_id TEXT NOT NULL,
+                  earlier_visible INTEGER NOT NULL, later_visible INTEGER NOT NULL,
+                  visibility_transition TEXT NOT NULL,
+                  original_properties_json TEXT NOT NULL, geom BLOB NOT NULL
+                );
+                CREATE TABLE monde_coverage (
+                  id INTEGER PRIMARY KEY CHECK(id=1),
+                  coverage_json TEXT NOT NULL
+                );
+            """)
+            db.executemany("INSERT INTO gpkg_spatial_ref_sys VALUES (?,?,?,?,?,?)", [
+                ("Undefined Cartesian", -1, "NONE", -1, "undefined", "undefined"),
+                ("Undefined geographic", 0, "NONE", 0, "undefined", "undefined"),
+                ("WGS 84", 4326, "EPSG", 4326,
+                 'GEOGCS["WGS 84",DATUM["WGS_1984",'
+                 'SPHEROID["WGS 84",6378137,298.257223563]],'
+                 'PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433],'
+                 'AUTHORITY["EPSG","4326"]]', "WGS84 source coordinates")
+            ])
+            db.execute("INSERT INTO gpkg_contents VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       ("original_points", "features", "MONDE original Point presence",
+                        "Original source observations, not physical movement or truth",
+                        "1980-01-01T00:00:00.000Z", *extents, 4326))
+            db.execute("INSERT INTO gpkg_geometry_columns VALUES (?,?,?,?,?,?)",
+                       ("original_points", "geom", "POINT", 4326, 0, 0))
+            db.execute("INSERT INTO monde_coverage VALUES (?,?)", (1, json.dumps(
+                geojson["monde_source_coverage"], ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"), allow_nan=False)))
+            for feature in features:
+                p = feature["properties"]
+                lon, lat = feature["geometry"]["coordinates"]
+                # GP header: little-endian, no envelope, EPSG:4326; then WKB Point.
+                geom = struct.pack("<2sBBI", b"GP", 0, 1, 4326) + struct.pack(
+                    "<BIdd", 1, 1, lon, lat)
+                db.execute("INSERT INTO original_points "
+                           "(feature_id,entity,source_id,assertion_id,evidence_id,"
+                           "earlier_visible,later_visible,visibility_transition,"
+                           "original_properties_json,geom) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                           (feature["id"], p["entity"], p["source_id"],
+                            p["monde_original_assertion_id"], p["evidence_id"],
+                            int(p["earlier_visible"]), int(p["later_visible"]),
+                            p["monde_visibility_transition"], json.dumps(
+                                p, ensure_ascii=False, sort_keys=True,
+                                separators=(",", ":"), allow_nan=False), geom))
+            db.commit()
+        return target.read_bytes()
+
+
 def source_directory_entity_presence_kmz(world, directory, presence=None):
     """Portable offline KMZ containing original KML and full source GeoJSON.
 
