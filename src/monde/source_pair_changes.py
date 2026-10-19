@@ -1097,7 +1097,7 @@ def source_directory_global_pair_matrix_csv(matrix):
             a, b = row["source_a"], row["source_b"]
             cutoff = matrix["cutoffs"][period]
             writer.writerow((safe(item["entity"]), period, row["status"],
-                             item["reporting_transition"],
+                             item.get("reporting_transition", ""),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),
