@@ -1127,3 +1127,63 @@ by which cutoff(s) contain them. The matrix page provides direct earlier/later
 GIS links. Other formats reject `witness_period`.
 
 Analytical witness features and WKT CSV rows additionally expose the **nearest original-reporter separation change in kilometres** (`reporter_gap_change_nearest_km`), the matrix's `reporter_gap_trend` and `reporting_transition`. Missing comparisons remain JSON `null` / empty CSV cells, never a fabricated zero. These fields classify two original sources' measured gaps across cutoffs; they **do not** establish movement, position truth or a source-observed route. Original Point features and saved snapshots are unchanged.
+
+
+### Portable two-reporter evidence ZIP (WORK-0143)
+
+The local /source-pair selector accepts format=presence-all-compare-bundle for an offline, fixed-name ZIP of the exact selected original matrix JSON/CSV, original Point GeoJSON, and separately identified analytical witness GeoJSON/WKT CSV. Its manifest.json records the two source IDs, bitemporal cutoffs, validated filters, byte sizes and SHA-256 hashes for each exported member. Same immutable snapshot and identical query yields the same ZIP bytes; the existing 2 MB HTTP limit applies. Original observations remain distinct from schematic connectors, which are not ground-truth locations, verified routes or movement. No new service, external library or write endpoint.
+
+## Portable offline reporter evidence index (WORK-0143)
+
+The existing `presence-all-compare-bundle` ZIP now includes an extracted `index.html` offline report. Open it after unzipping: it shows the exact selected entity matrix, reporter IDs, temporal axis/cutoffs, original reporting presence and derived nearest-point gaps, with links to the unchanged JSON/CSV/GeoJSON artifacts and SHA-256 manifest. Values from original sources are escaped as text; the report does not require JavaScript, a local MONDE server or external assets. Original observations and derived witness geometry remain explicitly distinguished; neither implies ground truth or movement.
+
+
+The extracted static report also includes expandable **per-entity original evidence**, retaining each reporter's original assertion and evidence IDs and reported Point longitude/latitude at the earlier and later cutoffs. Surviving assertions appear under both cutoffs, but do not imply two captures or observed physical movement. All names, IDs and coordinates are HTML-escaped inert text; offline viewing needs no scripts or external resources. The ZIP's original exports, SHA-256 manifest, immutability and deterministic ordering are unchanged.
+
+## Verify a downloaded original-reporter evidence bundle offline (WORK-0143)
+
+The existing `presence-all-compare-bundle` ZIP contains `manifest.json`,
+`index.html`, the original reporter matrix, original Point GeoJSON, and
+separate analytical witness exports. Verify the download without extracting
+files or starting the MONDE server:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle ./monde-reporter-evidence.zip
+```
+
+The command emits a machine-readable JSON result (`valid: true` or
+`valid: false`) and exits with `0` for a consistent bundle, `1` for a
+corrupted, unexpected, or invalid one. It verifies exact member names,
+SHA-256 checksums, payload sizes, temporal cutoff/reporter metadata parity,
+and separation between original observations and analytical geometry.
+It does not extract or execute ZIP members and uses no network or paid API.
+
+**Integrity is not authenticity:** the manifest and hashes live in the same
+archive. Someone who changes data and recomputes its manifest can make a
+consistent archive. No verification of independent reporter identity,
+ground truth, or physical movement is implied. Preserve trusted external
+distribution provenance when authenticity is required.
+
+
+### Compare two downloaded verified evidence bundles offline (WORK-0143)
+
+Use the same built-in, dependency-free command after downloading two ZIP
+exports of the **same reporter pair and temporal axis**:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle ./before.zip --compare ./after.zip
+```
+
+The command verifies both archives' manifest checksums and original-versus-
+analytical roles **before** comparing anything. A valid comparison prints
+machine-readable JSON with added, removed, changed and unchanged matrix
+entities, original Point feature additions/removals (preserving duplicate
+reports), changed export filenames, and each archive's source cutoffs.
+Mismatched reporter identities, incompatible axes and corrupt archives fail
+closed (exit 1). Original ZIP files are never extracted or modified.
+
+These results describe **differences between selected exported evidence**,
+not physical movement, a truth update or an authenticated source revision.
+Different filters or temporal cutoffs can alter the exported selection; this
+is flagged separately. All integrity hashes come from the archives
+themselves and retain `authenticity=NOT_ATTESTED`.
