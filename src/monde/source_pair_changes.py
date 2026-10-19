@@ -1076,8 +1076,11 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,
                 "matching_entities": len(rows),
-                "interpretation": "Original reporter Point gaps at either "
-                                  "cutoff, not truth or physical movement."}}
+                "interpretation": (
+                    "Original reporter Point gaps at both cutoffs; "
+                    if gap_window == "both" else
+                    "Original reporter Point gaps at either cutoff; ") +
+                    "not truth or physical movement."}}
 
 
 def filter_reporter_matrix_transitions(matrix, transition=None, gap_trend=None):

@@ -3911,6 +3911,7 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual([r["entity"] for r in matrix["entities"]],
                              [r["entity"] for r in expected])
             self.assertEqual(matrix["gap_selection"]["window"], "both")
+            self.assertIn("both cutoffs", matrix["gap_selection"]["interpretation"])
             _, _, raw = self.get({**query, "format": "presence-all-compare-csv"})
             csv_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
             self.assertEqual([r["entity"] for r in csv_rows[::2]],

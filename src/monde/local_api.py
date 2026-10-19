@@ -1314,7 +1314,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                 '" value="' + escape(str(v), quote=True) + '">'
                 for k, v in hidden.items()) +
         '<input type="hidden" name="format" value="presence-all-compare-table">'
-        '<label>Minimum nearest gap (km; either cutoff)'
+        '<label>Minimum nearest original gap (km)'
         '<input type="number" name="min_gap_km" min="0" max="20015" step="0.001"'
         ' value="' + escape(shared.get("min_gap_km", "0"), quote=True) +
         '"></label><label>At <select name="gap_window">'
