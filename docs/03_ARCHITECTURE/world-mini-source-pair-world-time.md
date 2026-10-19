@@ -920,3 +920,7 @@ Unknown source IDs produce no fabricated reports. Missing evidence remains
 UNKNOWN, not agreement; overlapping sources never prove consensus, movement
 or verified physical location. The server remains loopback read-only, with
 no snapshot writes, dependency or external service.
+
+## WORK-0133 — Export original reporter comparison as CSV
+
+The existing loopback-only `/source-pair?directory=1` comparison now accepts `format=presence-all-compare-csv` with two distinct `compare_a`/`compare_b` sources. The accessible reporter-matrix table links directly to this download. It is derived from the exact same global source selection as the matrix JSON, including spatial `bbox`, world/knowledge cutoffs and `presence=earlier|later|both`. Each entity has one earlier and one later row; both original sources retain their report counts and aligned JSON arrays of assertion IDs, evidence IDs and Point coordinates in CSV cells. Entity/source fields are spreadsheet-formula escaped. Zero-report status remains unreported/UNKNOWN rather than agreement, verified location or physical motion. No external request or persisted-data mutation is introduced.
