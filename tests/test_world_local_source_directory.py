@@ -2975,7 +2975,9 @@ class SourceDirectoryTests(unittest.TestCase):
             query = {**self.knowledge(), "source_prefix": "survey-a",
                      "presence": presence}
             self.assertEqual(self.get({**query, "format": "presence-all-map"})[0], 200)
-            directory = json.loads(self.get({**query, "format": "json"})[2])
+            directory = json.loads(self.get({
+                **{k: value for k, value in query.items() if k != "presence"},
+                "format": "json"})[2])
             layer = source_directory_all_presence_map(self.world, directory, presence)
             geo = json.loads(self.get({**query, "format": "presence-all-geojson"})[2])
             self.assertEqual([f["id"] for f in layer["features"]],
@@ -3006,7 +3008,9 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn(b"Both comparison periods", rendered)
                 source = json.loads(self.get({**query, "format": "presence-all-geojson"},
                                              server)[2])
-                directory = json.loads(self.get({**query, "format": "json"}, server)[2])
+                directory = json.loads(self.get({
+                    **{k: value for k, value in query.items() if k != "bbox"},
+                    "format": "json"}, server)[2])
                 box = [float(x) for x in bbox.split(",")]
                 layer = source_directory_all_presence_map(world, directory, bbox=box)
                 self.assertEqual(layer["monde_bbox_query"]["bbox"], box)
