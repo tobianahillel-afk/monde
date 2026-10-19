@@ -3949,5 +3949,80 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_nearest_original_report_pair_is_provenance_traceable_across_outputs(self):
+        """Inspect which exact original assertions determine the numeric gap."""
+        from monde.source_pair_changes import _distance
+        for times in (self.knowledge(),
+                      {"directory": "1", "axis": "world",
+                       "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            base = {**times, "compare_a": "survey-a", "compare_b": "survey-b",
+                    "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            _, _, csv_raw = self.get({**base, "format": "presence-all-compare-csv"})
+            csv_rows = {(row["entity"], row["period"]): row for row in
+                        csv.DictReader(io.StringIO(csv_raw.decode("utf-8")))}
+            _, _, geo_raw = self.get({**base, "format": "presence-all-compare-geojson"})
+            features = json.loads(geo_raw)["features"]
+            witnesses = 0
+            for entity in matrix["entities"]:
+                for period in ("earlier", "later"):
+                    current = entity[period]
+                    pair = current["nearest_original_pair"]
+                    flat = csv_rows[(entity["entity"], period)]
+                    for side in ("source_a", "source_b"):
+                        column = "nearest_" + side + "_original_json"
+                        self.assertEqual(json.loads(flat[column]) if flat[column] else None,
+                                         pair[side] if pair else None)
+                    if pair is None:
+                        self.assertIsNone(current["separation_km"])
+                        continue
+                    witnesses += 1
+                    gap = _distance(pair["source_a"]["coordinates"],
+                                    pair["source_b"]["coordinates"])
+                    self.assertEqual(round(gap, 3), pair["distance_km"])
+                    self.assertEqual(pair["distance_km"],
+                                     current["separation_km"]["nearest_km"])
+                    for side, source in (("source_a", "survey-a"),
+                                         ("source_b", "survey-b")):
+                        original = pair[side]
+                        matching = [f for f in features
+                                    if f["properties"]["entity"] == entity["entity"]
+                                    and f["properties"]["source_id"] == source
+                                    and f["properties"]["monde_original_assertion_id"] ==
+                                        original["assertion_id"]
+                                    and f["properties"]["evidence_id"] ==
+                                        original["evidence_id"]
+                                    and f["geometry"]["coordinates"] ==
+                                        original["coordinates"]]
+                        self.assertTrue(matching)
+                        self.assertTrue(any(period in f["properties"].get(
+                            "monde_nearest_original_pair_periods", [])
+                            for f in matching))
+            self.assertGreater(witnesses, 0)
+            status, _, html = self.get({**base, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"Nearest original report pair", html)
+            self.assertEqual(self.get({**base, "format": "presence-all-compare-map"})[0],
+                             200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_nearest_original_pair_ties_are_deterministic_and_unknown_is_null(self):
+        from monde.source_pair_changes import _measure_with_original_pair
+        def feature(assertion, evidence, coordinate):
+            return {"geometry": {"coordinates": coordinate},
+                    "properties": {"monde_original_assertion_id": assertion,
+                                   "evidence_id": evidence}}
+        left = [feature("a2", "e2", [1, 0]), feature("a1", "e1", [1, 0])]
+        right = [feature("b1", "f1", [1, 0])]
+        first = _measure_with_original_pair(left, right)
+        self.assertEqual(first[0], {"nearest_km": 0.0, "farthest_km": 0.0})
+        self.assertEqual(first[1]["source_a"]["assertion_id"], "a1")
+        self.assertEqual(first, _measure_with_original_pair(list(reversed(left)), right))
+        self.assertEqual(_measure_with_original_pair([], right), (None, None))
+        self.assertEqual(_measure_with_original_pair(left, []), (None, None))
+
 if __name__ == "__main__":
     unittest.main()
