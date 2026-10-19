@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from monde.evidence_bundle import BundleVerificationError, SCHEMA, verify_bundle
+from monde.evidence_bundle import BundleVerificationError, SCHEMA, compare_bundles, verify_bundle
 
 
 def fixture():
@@ -148,6 +148,98 @@ class TestOfflineEvidenceBundle(unittest.TestCase):
             )
             self.assertEqual(bad.returncode, 1)
             self.assertFalse(json.loads(bad.stdout)["valid"])
+
+
+class TestOfflineBundleComparison(unittest.TestCase):
+    def test_identical_exports_have_no_report_or_feature_changes(self):
+        zipped = pack(fixture())
+        compared = compare_bundles(zipped, zipped)
+        self.assertTrue(compared["valid"])
+        self.assertEqual(compared["entities_added"], [])
+        self.assertEqual(compared["entities_changed"], [])
+        self.assertEqual(compared["original_points_added"], 0)
+        self.assertEqual(compared["original_points_removed"], 0)
+        self.assertEqual(compared["changed_files"], [])
+        self.assertEqual(compared["authenticity"], "NOT_ATTESTED")
+
+    def test_original_evidence_addition_distinct_from_derived_witness(self):
+        old = fixture()
+        latest = fixture()
+        matrix = json.loads(latest["matrix.json"])
+        matrix["entities"].append({"entity": "A", "earlier": {"status": "UNKNOWN"}})
+        matrix["total_entities"] = 1
+        feature = {"type": "Feature", "geometry": {"type": "Point",
+                   "coordinates": [2.0, 48.0]},
+                   "properties": {"entity": "A", "source_id": "survey-a",
+                                  "assertion_id": "report-1",
+                                  "evidence_id": "doc-1",
+                                  "monde_original_observation": True}}
+        points = {"type": "FeatureCollection", "features": [feature]}
+        latest["matrix.json"] = json.dumps(matrix).encode()
+        latest["original-points.geojson"] = json.dumps(points).encode()
+        manifest = json.loads(latest["manifest.json"])
+        for name in ("matrix.json", "original-points.geojson"):
+            raw = latest[name]
+            manifest["files"][name] = {"bytes": len(raw),
+                                        "sha256": sha256(raw).hexdigest()}
+        latest["manifest.json"] = json.dumps(manifest).encode()
+        outcome = compare_bundles(pack(old), pack(latest))
+        self.assertEqual(outcome["entities_added"], ["A"])
+        self.assertEqual(outcome["original_points_added"], 1)
+        self.assertEqual(outcome["original_points_removed"], 0)
+        self.assertEqual(outcome["changed_files"],
+                         ["matrix.json", "original-points.geojson"])
+        self.assertEqual(outcome["interpretation"],
+                         "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+
+    def test_cutoff_change_reported_without_interpreting_world_change(self):
+        original = fixture()
+        other = fixture()
+        manifest = json.loads(other["manifest.json"])
+        matrix = json.loads(other["matrix.json"])
+        matrix["cutoffs"]["at"] = "2026-02-05T00:00:00Z"
+        manifest["cutoffs"] = matrix["cutoffs"]
+        other["matrix.json"] = json.dumps(matrix).encode()
+        manifest["files"]["matrix.json"] = {
+            "bytes": len(other["matrix.json"]),
+            "sha256": sha256(other["matrix.json"]).hexdigest()}
+        other["manifest.json"] = json.dumps(manifest).encode()
+        result = compare_bundles(pack(original), pack(other))
+        self.assertTrue(result["selection_or_cutoffs_differ"])
+        self.assertEqual(result["entities_changed"], [])
+
+    def test_mismatched_sources_and_broken_hash_never_compare(self):
+        before = fixture()
+        unrelated = fixture()
+        m = json.loads(unrelated["manifest.json"])
+        x = json.loads(unrelated["matrix.json"])
+        m["source_b"] = x["source_b"] = "other-reporter"
+        unrelated["matrix.json"] = json.dumps(x).encode()
+        m["files"]["matrix.json"] = {
+            "bytes": len(unrelated["matrix.json"]),
+            "sha256": sha256(unrelated["matrix.json"]).hexdigest()}
+        unrelated["manifest.json"] = json.dumps(m).encode()
+        with self.assertRaisesRegex(BundleVerificationError, "incompatible"):
+            compare_bundles(pack(before), pack(unrelated))
+        broken = fixture()
+        broken["index.html"] = b"changed but not rehashed"
+        with self.assertRaisesRegex(BundleVerificationError, "checksum mismatch"):
+            compare_bundles(pack(before), pack(broken))
+
+    def test_compare_cli_reports_json_and_preserves_both_archives(self):
+        with tempfile.TemporaryDirectory() as folder:
+            original, other = (Path(folder) / name for name in ("a.zip", "b.zip"))
+            data = pack(fixture())
+            original.write_bytes(data)
+            other.write_bytes(data)
+            result = subprocess.run(
+                [sys.executable, "-m", "monde.evidence_bundle",
+                 str(original), "--compare", str(other)],
+                capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(json.loads(result.stdout)["valid"])
+            self.assertEqual(original.read_bytes(), data)
+            self.assertEqual(other.read_bytes(), data)
 
 
 if __name__ == "__main__":

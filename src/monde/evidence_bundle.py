@@ -3,6 +3,7 @@
 SHA-256 verifies consistency with the included manifest, NOT authenticity.
 """
 import argparse
+from collections import Counter
 from hashlib import sha256
 import io
 import json
@@ -104,14 +105,89 @@ def verify_bundle(data: bytes) -> dict:
         raise BundleVerificationError("invalid or corrupted ZIP") from exc
 
 
+def compare_bundles(before: bytes, after: bytes) -> dict:
+    """Compare two verified original-reporter exports, without asserting truth.
+
+    Repeated source reports are counted separately. Different selections,
+    bitemporal cutoffs or exported analytical witnesses are not interpreted as
+    real-world events, movement or independent source authentication.
+    """
+    left = verify_bundle(before)
+    right = verify_bundle(after)
+    for key in ("schema", "source_a", "source_b", "axis"):
+        if left[key] != right[key]:
+            raise BundleVerificationError("incompatible bundles: " + key)
+
+    def contents(raw):
+        with ZipFile(io.BytesIO(raw)) as archive:
+            manifest = _json(archive.read("manifest.json"), "manifest.json")
+            matrix = _json(archive.read("matrix.json"), "matrix.json")
+            points = _json(archive.read("original-points.geojson"),
+                           "original-points.geojson")
+            rows = matrix.get("entities")
+            if not isinstance(rows, list):
+                raise BundleVerificationError("invalid matrix entities")
+            by_id = {}
+            for row in rows:
+                if not isinstance(row, dict) or not isinstance(row.get("entity"), str):
+                    raise BundleVerificationError("invalid matrix entity")
+                identifier = row["entity"]
+                if identifier in by_id:
+                    raise BundleVerificationError("duplicate matrix entity")
+                by_id[identifier] = json.dumps(
+                    row, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            original = Counter(json.dumps(
+                feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                for feature in points["features"])
+            return manifest, by_id, original
+
+    left_manifest, left_rows, left_points = contents(before)
+    right_manifest, right_rows, right_points = contents(after)
+    added = sorted(right_rows.keys() - left_rows.keys())
+    removed = sorted(left_rows.keys() - right_rows.keys())
+    common = left_rows.keys() & right_rows.keys()
+    changed = sorted(i for i in common if left_rows[i] != right_rows[i])
+    changed_files = sorted(
+        name for name in FILES
+        if left_manifest["files"][name]["sha256"]
+        != right_manifest["files"][name]["sha256"])
+    return {
+        "valid": True,
+        "comparison": "MONDE_ORIGINAL_REPORTER_BUNDLE_COMPARISON_V1",
+        "source_a": left["source_a"], "source_b": left["source_b"],
+        "axis": left["axis"],
+        "before_cutoffs": left_manifest["cutoffs"],
+        "after_cutoffs": right_manifest["cutoffs"],
+        "selection_or_cutoffs_differ": (
+            left_manifest.get("filters") != right_manifest.get("filters")
+            or left_manifest["cutoffs"] != right_manifest["cutoffs"]),
+        "entities_added": added, "entities_removed": removed,
+        "entities_changed": changed,
+        "entities_unchanged_count": len(common) - len(changed),
+        "original_points_added": sum((right_points - left_points).values()),
+        "original_points_removed": sum((left_points - right_points).values()),
+        "changed_files": changed_files,
+        "authenticity": "NOT_ATTESTED",
+        "interpretation": "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE",
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
+    parser.add_argument("--compare", type=Path, metavar="OTHER_ZIP",
+                        help="Compare verified export with another original-reporter ZIP")
     args = parser.parse_args(argv)
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
-        result = verify_bundle(args.bundle.read_bytes())
+        original = args.bundle.read_bytes()
+        if args.compare is None:
+            result = verify_bundle(original)
+        else:
+            if args.compare.stat().st_size > MAX_ARCHIVE:
+                raise BundleVerificationError("comparison archive exceeds safe size")
+            result = compare_bundles(original, args.compare.read_bytes())
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1
