@@ -3429,5 +3429,115 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn(b"<!doctype html>", map_html.lower())
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_reporter_matrix_transitions_keep_http_json_csv_and_html_in_sync(self):
+        """Real saved WorldMini on the loopback server; no inferred truth."""
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+        status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)
+        self.assertEqual(original["total_entities"], len(original["entities"]))
+        self.assertEqual(original["total_entities_unfiltered"], len(original["entities"]))
+        self.assertEqual(sum(original["transition_counts"].values()),
+                         original["total_entities"])
+        classification = {
+            "reporters-changed": "REPORTERS_CHANGED",
+            "evidence-changed": "ORIGINAL_EVIDENCE_CHANGED",
+            "unchanged": "UNCHANGED",
+        }
+        all_entities = {row["entity"]: row for row in original["entities"]}
+        for selected, category in classification.items():
+            query = {**base, "transition": selected}
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            current = json.loads(raw)
+            self.assertEqual(current["transition_filter"], selected)
+            self.assertEqual(current["transition_counts"], original["transition_counts"])
+            self.assertEqual(current["total_entities_unfiltered"], len(all_entities))
+            self.assertEqual(current["total_entities"],
+                             original["transition_counts"][category])
+            self.assertEqual([row["entity"] for row in current["entities"]],
+                             [row["entity"] for row in original["entities"]
+                              if row["reporting_transition"] == category])
+            for row in current["entities"]:
+                self.assertEqual(row["earlier"], all_entities[row["entity"]]["earlier"])
+                self.assertEqual(row["later"], all_entities[row["entity"]]["later"])
+            status, headers, raw_csv = self.get({
+                **query, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+            rows = list(csv.DictReader(io.StringIO(raw_csv.decode("utf-8"))))
+            self.assertEqual(len(rows), 2 * current["total_entities"])
+            self.assertEqual({r["reporting_transition"] for r in rows},
+                             {category} if rows else set())
+            status, _, html = self.get({
+                **query, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"Original evidence transition filters", html)
+            self.assertIn(b"Matching entities:", html)
+            self.assertIn(b"presence-all-compare-csv", html)
+            self.assertIn(b"transition=", html)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_reporter_matrix_transition_classifier_distinguishes_reporters_and_revisions(self):
+        """A changed original assertion is not the same as a changed reporter."""
+        from copy import deepcopy
+        from monde.source_pair_changes import filter_reporter_matrix_transitions
+        report = lambda ids: {
+            "count": len(ids), "assertion_ids": ids, "evidence_ids": ids,
+            "coordinates": [[2.0, 48.0] for _ in ids]}
+        before = {"status": "BOTH_REPORTED",
+                  "source_a": report(["a"]), "source_b": report(["b"])}
+        unchanged = {"entity": "no-change", "earlier": deepcopy(before),
+                     "later": deepcopy(before)}
+        amended = {"entity": "new-assertion", "earlier": deepcopy(before),
+                   "later": deepcopy(before)}
+        amended["later"]["source_b"] = report(["b2"])
+        reporter = {"entity": "reporter-gone", "earlier": deepcopy(before),
+                    "later": deepcopy(before)}
+        reporter["later"]["source_b"] = report([])
+        reporter["later"]["status"] = "ONLY_SOURCE_A"
+        rows = [unchanged, amended, reporter]
+        base = {"schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
+                "entities": rows, "total_entities": len(rows),
+                "per_period": {}}
+        expected = {
+            "unchanged": ("UNCHANGED", "no-change"),
+            "evidence-changed": ("ORIGINAL_EVIDENCE_CHANGED", "new-assertion"),
+            "reporters-changed": ("REPORTERS_CHANGED", "reporter-gone"),
+        }
+        for query, (category, entity) in expected.items():
+            filtered = filter_reporter_matrix_transitions(base, query)
+            self.assertEqual([r["entity"] for r in filtered["entities"]], [entity])
+            self.assertEqual(filtered["entities"][0]["reporting_transition"], category)
+            self.assertEqual(filtered["total_entities_unfiltered"], 3)
+        self.assertEqual(base["entities"], rows)
+        with self.assertRaises(ValueError):
+            filter_reporter_matrix_transitions(base, "invented")
+
+    def test_reporter_matrix_transition_rejects_unknown_and_unrelated_query(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        for bad in (
+                {**base, "format": "presence-all-compare-json",
+                 "transition": "unknown"},
+                {**base, "format": "presence-all-compare-json",
+                 "transition": ""},
+                {**base, "format": "presence-all-geojson",
+                 "transition": "unchanged"},
+                {**base, "format": "presence-all-csv",
+                 "transition": "reporters-changed"},
+                {**self.knowledge(), "format": "json",
+                 "transition": "unchanged"},
+                {**self.knowledge(), "format": "presence-all-compare-table",
+                 "transition": "unchanged"},
+        ):
+            with self.subTest(bad=bad):
+                status, _, body = self.get(bad)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
