@@ -2315,6 +2315,8 @@ def create_server(state: str | Path, port: int = 0, *,
                     if args.get("directory") == "1":
                         document = _source_directory_query(world, args)
                         output_format = args.get("format", "table")
+                        compare_sources = ((args["compare_a"], args["compare_b"])
+                                           if "compare_a" in args else None)
                         if output_format == "json":
                             return self._reply(200, document)
                         if output_format == "presence-json":
@@ -2363,13 +2365,13 @@ def create_server(state: str | Path, port: int = 0, *,
                             return self._html(source_directory_all_presence_map(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact")))
+                                args.get("source_exact"), compare_sources))
                         if output_format == "presence-all-geojson":
                             from .source_pair_changes import source_directory_all_presence_geojson
                             return self._reply(200, source_directory_all_presence_geojson(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact")))
+                                args.get("source_exact"), compare_sources))
                         if output_format in ("presence-gpkg", "presence-all-gpkg"):
                             from .source_pair_changes import (
                                 source_directory_entity_presence_gpkg,
@@ -2380,7 +2382,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             body = (export(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact"))
+                                args.get("source_exact"), compare_sources)
                                 if output_format == "presence-all-gpkg" else
                                 export(world, document, args.get("presence")))
                             if len(body) > max_response_bytes:
@@ -2449,7 +2451,7 @@ def create_server(state: str | Path, port: int = 0, *,
                                 body = source_directory_all_presence_csv(
                                     world, document, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
-                                    args.get("source_exact")
+                                    args.get("source_exact"), compare_sources
                                 ).encode("utf-8")
                             elif output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv
