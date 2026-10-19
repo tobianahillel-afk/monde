@@ -4318,5 +4318,32 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(payload), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_reporter_crossing_composes_all_existing_matrix_filters(self):
+        # Seventeen authorized query fields must remain usable together;
+        # the bounded query parser must still reject field flooding.
+        request = {**self.knowledge(), "compare_a": "survey-a",
+                   "compare_b": "survey-b",
+                   "format": "presence-all-compare-json",
+                   "presence": "both", "bbox": "-180,-90,180,90",
+                   "transition": "unchanged", "gap_trend": "steady",
+                   "min_gap_km": "0", "gap_window": "both",
+                   "min_gap_change_km": "0", "gap_crossing_km": "1",
+                   "gap_order": "largest-change"}
+        self.assertEqual(len(request), 17)
+        status, _, body = self.get(request)
+        self.assertEqual(status, 200)
+        selected = json.loads(body)
+        self.assertEqual(selected["gap_selection"]["crossing_threshold_km"], 1)
+        self.assertTrue(all(r["reporting_transition"] == "UNCHANGED"
+                            for r in selected["entities"]))
+        self.assertTrue(all(r["reporter_gap_trend"] == "STEADY"
+                            for r in selected["entities"]))
+        flooded = {**request, **{"illegal" + str(i): "x" for i in range(5)}}
+        status, _, payload = self.get(flooded)
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
