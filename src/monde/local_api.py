@@ -1316,7 +1316,8 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
     hidden = {k: v for k, v in shared.items()
-              if k not in ("min_gap_km", "min_gap_change_km", "gap_order", "gap_window")}
+              if k not in ("min_gap_km", "min_gap_change_km",
+                           "gap_crossing_km", "gap_order", "gap_window")}
     priority = (
         '<form method="get" action="/source-pair"><fieldset>'
         '<legend>Prioritize original reporter Point separation</legend>' +
@@ -1330,6 +1331,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '"></label><label>Minimum absolute change between cutoffs (km)'
         '<input type="number" name="min_gap_change_km" min="0" max="20015" step="0.001"'
         ' value="' + escape(shared.get("min_gap_change_km", ""), quote=True) +
+        '"></label><label>Gap threshold crossing (km)'
+        '<input type="number" name="gap_crossing_km" min="0" max="20015" step="0.001"'
+        ' value="' + escape(shared.get("gap_crossing_km", ""), quote=True) +
         '"></label><label>At <select name="gap_window">'
         '<option value="either"' +
         (' selected' if shared.get("gap_window", "either") == "either" else '') +
@@ -1404,19 +1408,21 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     # zero-kilometre filter that would discard UNKNOWN observations.
     if args.get("min_gap_change_km") == "":
         args = {k: v for k, v in args.items() if k != "min_gap_change_km"}
+    if args.get("gap_crossing_km") == "":
+        args = {k: v for k, v in args.items() if k != "gap_crossing_km"}
     if args.get("directory") != "1" or args.get("format", "table") not in (
             "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_order", "gap_window", "focus_entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1470,6 +1476,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
                 float(value) > 20015):
             raise ValueError("invalid minimum reporter gap change")
+    if "gap_crossing_km" in args:
+        value = args["gap_crossing_km"]
+        if (args.get("format") not in formats or
+                not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
+                float(value) > 20015):
+            raise ValueError("invalid original reporter gap crossing threshold")
     if "gap_order" in args and (
             args.get("format") not in formats or
             args["gap_order"] not in ("largest", "largest-change")):
@@ -2600,7 +2612,9 @@ def create_server(state: str | Path, port: int = 0, *,
                                 args.get("gap_order"),
                                 args.get("gap_window"),
                                 float(args["min_gap_change_km"]) if
-                                "min_gap_change_km" in args else None)
+                                "min_gap_change_km" in args else None,
+                                float(args["gap_crossing_km"]) if
+                                "gap_crossing_km" in args else None)
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",
