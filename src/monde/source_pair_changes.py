@@ -1096,6 +1096,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
     if (gap_crossing_direction not in (None, "above", "below") or
             (gap_crossing_direction is not None and gap_crossing_km is None)):
         raise ValueError("invalid reporter gap crossing direction")
+    if gap_order == "largest-margin" and gap_crossing_km is None:
+        raise ValueError("crossing margin ranking requires a threshold")
     if gap_crossing_km is not None and (
             type(gap_crossing_km) not in (int, float) or
             not isfinite(gap_crossing_km) or
@@ -1117,7 +1119,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             not isinstance(min_gap_km, (int, float)) or
             not isfinite(min_gap_km) or not 0 <= min_gap_km <= 20015):
         raise ValueError("invalid reporter gap threshold")
-    if gap_order not in (None, "largest", "largest-change"):
+    if gap_order not in (None, "largest", "largest-change", "largest-margin"):
         raise ValueError("invalid reporter gap order")
     def gap(row):
         values = [row[p]["separation_km"]["nearest_km"]
@@ -1166,6 +1168,9 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         rows = [{**r, "reporter_gap_crossing": crossing(r)} for r in rows]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
+    elif gap_order == "largest-margin":
+        # Prioritize the crossed-side overshoot at the later cutoff.
+        rows.sort(key=lambda r: (-crossing_margin(r), r["entity"]))
     elif gap_order == "largest-change":
         # Compare only original reports jointly observed at BOTH cutoffs.
         # Missing comparisons are UNKNOWN and sort last, never as zero change.

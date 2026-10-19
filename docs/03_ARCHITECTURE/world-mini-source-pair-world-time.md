@@ -1101,3 +1101,7 @@ The same filtered original entities and evidence identities appear in JSON,
 CSV, accessible HTML, original GeoJSON and the read-only offline map; JSON
 `gap_selection.minimum_crossing_margin_km` records the chosen margin.
 No inferred movement, location consensus, mutation, service or dependency.
+
+### Ranking original reporter gap crossings by later threshold margin (WORK-0142)
+
+After selecting `gap_crossing_km=N`, `gap_order=largest-margin` sorts qualifying entities by the distance that their later original nearest Point-report gap extends beyond the crossed side of threshold N, descending; equal margins use entity ID. This differs from `largest-change`, which sorts the total earlier/later gap variation. Without a crossing threshold the new ordering is rejected. Native HTML, canonical JSON, CSV, source-attributed GeoJSON and local map retain the exact same evidence selection. Neither metric asserts physical movement or ground truth.

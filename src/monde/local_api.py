@@ -1359,6 +1359,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<option value="largest-change"' +
         (' selected' if shared.get("gap_order") == "largest-change" else '') +
         '>Largest change in original-report gap first</option>'
+        '<option value="largest-margin"' +
+        (' selected' if shared.get("gap_order") == "largest-margin" else '') +
+        '>Largest threshold crossing margin first</option>'
         '</select></label><button type="submit">Prioritize evidence</button>'
         '</fieldset></form>')
     return (
@@ -1513,8 +1516,10 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid minimum crossing margin")
     if "gap_order" in args and (
             args.get("format") not in formats or
-            args["gap_order"] not in ("largest", "largest-change")):
+            args["gap_order"] not in ("largest", "largest-change", "largest-margin")):
         raise ValueError("invalid original reporter gap order")
+    if args.get("gap_order") == "largest-margin" and "gap_crossing_km" not in args:
+        raise ValueError("crossing margin ranking requires a threshold")
     if "gap_window" in args and (
             args.get("format") not in formats or
             "min_gap_km" not in args or
