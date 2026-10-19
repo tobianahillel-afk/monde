@@ -3055,6 +3055,10 @@ class SourceDirectoryTests(unittest.TestCase):
         directory_html = self.get({**self.knowledge(), "format": "table"})[2]
         self.assertIn(b"Map this reporter across all entities", directory_html)
         self.assertIn(b"source_exact=survey-a", directory_html)
+        prefix_html = self.get({**self.knowledge(), "format": "table",
+                                "source_prefix": "survey"})[2]
+        self.assertIn(b"source_exact=survey-a", prefix_html)
+        self.assertNotIn(b"source_prefix=survey&amp;format=presence-all-map", prefix_html)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_global_exact_reporter_unknown_and_invalid_scope_fail_closed(self):

@@ -1347,7 +1347,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
             ' · <a href="' + escape("/source-pair?" + urlencode({
                 **{k: v for k, v in args.items()
                    if k not in ("format", "entity", "source", "source_exact",
-                                "bbox")},
+                                "source_prefix", "bbox")},
                 "format": "presence-all-map",
                 "source_exact": item["source_id"],
             }), quote=True) + '">Map this reporter across all entities</a>'
