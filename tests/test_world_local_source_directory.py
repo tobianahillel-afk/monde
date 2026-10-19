@@ -2447,8 +2447,6 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
     def test_original_presence_gpkg_opens_in_sqlite_with_exact_original_points(self):
         """Roundtrip actual loopback HTTP and OGC GeoPackage/WKB semantics."""
@@ -2546,3 +2544,7 @@ if __name__ == "__main__":
                        "assertion": "partial"}):
             self.assertEqual(self.get(query)[0], 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+if __name__ == "__main__":
+    unittest.main()
