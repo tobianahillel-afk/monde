@@ -928,3 +928,27 @@ The existing loopback-only `/source-pair?directory=1` comparison now accepts `fo
 
 ### WORK-0133 — Navigate from original reporter matrix to evidence
 The existing global comparison HTML matrix now links each listed entity to the already available full original-evidence presence table; reporters with original Points also link to their respective original per-entity source maps. The drill-downs preserve both world/knowledge cutoffs and optional presence classification without claiming agreement or inferred movement. A global spatial bbox is deliberately *not* carried to per-entity routes, which show the complete original evidence for the selected entity/source; the HTML discloses this scope change. The existing index selector for the reporting matrix now uses a valid single HTML option value. No new endpoint, data mutation or external dependency.
+
+
+## Original reporter evidence transitions (WORK-0134)
+
+The existing two-source matrix (`presence-all-compare-table`, `presence-all-compare-json`,
+`presence-all-compare-csv`) supports optional
+`transition=reporters-changed|evidence-changed|unchanged`. The browser matrix
+provides native read-only links for all three categories and for all reports.
+Each CSV entity/period row contains `reporting_transition`, aligned with
+JSON and the HTML table.
+
+The classification inspects **only the selected original evidence** at the two
+world/knowledge cutoffs, within the existing wrapped WGS84 bounding box and
+optional presence filter. `REPORTERS_CHANGED` means a different set of
+sources reported original Points; `ORIGINAL_EVIDENCE_CHANGED` means the same
+reporters are present but assertion IDs, evidence IDs or original Point
+coordinates differ; `UNCHANGED` means those selected original reports match.
+None proves an actual physical change, consensus, truth or accuracy; missing
+reports remain **UNKNOWN**. JSON `transition_counts` and
+`total_entities_unfiltered` describe the population **before** transition
+filtering, while `total_entities`, `entities` and `per_period` refer to
+matching rows. `total_original_reports` remains the pre-transition selected
+source evidence feature count. Unknown filter values and use on other formats
+fail with HTTP 400. No new dependency, endpoint, database or stored-world write.
