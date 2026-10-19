@@ -1402,6 +1402,13 @@ def source_directory_global_pair_witness_geojson(
                     "world_at": cutoff["world_at"],
                     "knowledge_at": cutoff["knowledge_at"],
                     "distance_km": nearest["distance_km"],
+                    # Change compares two reported *separations*, not the
+                    # distance travelled by an entity or a reporter.
+                    "reporter_gap_change_nearest_km": (
+                        row["separation_change_km"]["nearest_km"]
+                        if row["separation_change_km"] is not None else None),
+                    "reporter_gap_trend": row["reporter_gap_trend"],
+                    "reporting_transition": row["reporting_transition"],
                     "source_a": matrix["source_a"],
                     "source_b": matrix["source_b"],
                     "source_a_assertion_id": aa["assertion_id"],
@@ -1449,8 +1456,10 @@ def source_directory_global_pair_witness_csv(geojson):
                      "source_a", "source_b", "source_a_assertion_id",
                      "source_a_evidence_id", "source_b_assertion_id",
                      "source_b_evidence_id", "distance_km",
-                     "reporter_gap_crossing", "reporter_gap_crossing_margin_km",
-                     "geometry_wkt", "original_observation", "geometry_role"))
+                     "reporter_gap_change_nearest_km", "reporter_gap_trend",
+                     "reporting_transition", "reporter_gap_crossing",
+                     "reporter_gap_crossing_margin_km", "geometry_wkt",
+                     "original_observation", "geometry_role"))
     for feature in geojson["features"]:
         p = feature["properties"]
         if p.get("monde_geometry_role") != "ANALYTICAL_REPORTER_GAP_WITNESS":
@@ -1459,7 +1468,11 @@ def source_directory_global_pair_witness_csv(geojson):
                          p["knowledge_at"], safe(p["source_a"]), safe(p["source_b"]),
                          safe(p["source_a_assertion_id"]), safe(p["source_a_evidence_id"]),
                          safe(p["source_b_assertion_id"]), safe(p["source_b_evidence_id"]),
-                         p["distance_km"], p.get("reporter_gap_crossing", ""),
+                         p["distance_km"],
+                         (p["reporter_gap_change_nearest_km"]
+                          if p["reporter_gap_change_nearest_km"] is not None else ""),
+                         p["reporter_gap_trend"], p["reporting_transition"],
+                         p.get("reporter_gap_crossing", ""),
                          p.get("reporter_gap_crossing_margin_km", ""),
                          wkt(feature["geometry"]), "false",
                          "ANALYTICAL_REPORTER_GAP_WITNESS"))

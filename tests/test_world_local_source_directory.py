@@ -4729,10 +4729,67 @@ class SourceDirectoryTests(unittest.TestCase):
                     self.assertEqual(row["source_b_evidence_id"],
                                      props["source_b_evidence_id"])
                     self.assertEqual(float(row["distance_km"]), props["distance_km"])
+                    self.assertEqual(row["reporter_gap_trend"],
+                                     props["reporter_gap_trend"])
+                    self.assertEqual(row["reporting_transition"],
+                                     props["reporting_transition"])
+                    expected_delta = props["reporter_gap_change_nearest_km"]
+                    self.assertEqual(
+                        row["reporter_gap_change_nearest_km"],
+                        "" if expected_delta is None else str(expected_delta))
                     self.assertTrue(row["geometry_wkt"].startswith(
                         ("LINESTRING (", "MULTILINESTRING (")))
                 table = self.get({**q, "format": "presence-all-compare-table"})[2]
                 self.assertIn(b"presence-all-compare-witness-csv", table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_witness_gis_change_fields_match_original_reporter_matrix(self):
+        """Cross-cutoff gap changes are analytical, never inferred motion."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            query = {**base, "compare_a": "survey-a", "compare_b": "survey-b"}
+            matrix_status, _, matrix_raw = self.get({
+                **query, "format": "presence-all-compare-json"})
+            self.assertEqual(matrix_status, 200)
+            matrix = json.loads(matrix_raw)
+            by_entity = {r["entity"]: r for r in matrix["entities"]}
+            status, _, witness_raw = self.get({
+                **query, "format": "presence-all-compare-witness-geojson"})
+            self.assertEqual(status, 200)
+            witness = json.loads(witness_raw)
+            original = [f for f in witness["features"] if
+                        f["properties"].get("monde_geometry_role") !=
+                        "ANALYTICAL_REPORTER_GAP_WITNESS"]
+            analytical = [f for f in witness["features"] if
+                          f["properties"].get("monde_geometry_role") ==
+                          "ANALYTICAL_REPORTER_GAP_WITNESS"]
+            self.assertTrue(analytical)
+            self.assertTrue(all(
+                "reporter_gap_change_nearest_km" not in f["properties"]
+                for f in original))
+            for item in analytical:
+                p = item["properties"]
+                row = by_entity[p["entity"]]
+                change = row["separation_change_km"]
+                self.assertEqual(
+                    p["reporter_gap_change_nearest_km"],
+                    None if change is None else change["nearest_km"])
+                self.assertEqual(p["reporter_gap_trend"],
+                                 row["reporter_gap_trend"])
+                self.assertEqual(p["reporting_transition"],
+                                 row["reporting_transition"])
+                self.assertIs(p["monde_original_observation"], False)
+                self.assertTrue(p["monde_not_a_route_or_movement"])
+            csv_status, _, csv_raw = self.get({
+                **query, "format": "presence-all-compare-witness-csv"})
+            self.assertEqual(csv_status, 200)
+            rows = list(csv.DictReader(io.StringIO(csv_raw.decode("utf-8"))))
+            self.assertEqual(len(rows), len(analytical))
+            for record, feature in zip(rows, analytical):
+                v = feature["properties"]["reporter_gap_change_nearest_km"]
+                self.assertEqual(record["reporter_gap_change_nearest_km"],
+                                 "" if v is None else str(v))
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_witness_period_filters_only_analytical_segments(self):

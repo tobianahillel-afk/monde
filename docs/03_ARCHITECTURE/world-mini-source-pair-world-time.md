@@ -1125,3 +1125,5 @@ report count is unchanged. This is intentionally distinct from
 `presence=earlier|later|both`, which classifies *individual original reports*
 by which cutoff(s) contain them. The matrix page provides direct earlier/later
 GIS links. Other formats reject `witness_period`.
+
+Analytical witness features and WKT CSV rows additionally expose the **nearest original-reporter separation change in kilometres** (`reporter_gap_change_nearest_km`), the matrix's `reporter_gap_trend` and `reporting_transition`. Missing comparisons remain JSON `null` / empty CSV cells, never a fabricated zero. These fields classify two original sources' measured gaps across cutoffs; they **do not** establish movement, position truth or a source-observed route. Original Point features and saved snapshots are unchanged.
