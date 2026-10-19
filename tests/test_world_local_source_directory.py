@@ -3115,5 +3115,84 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
         self.assertEqual(saved.read_bytes(), unchanged)
 
+
+    def test_global_two_reporters_share_original_point_identities_in_four_formats(self):
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b"}
+        original = json.loads(self.get({
+            **self.knowledge(), "format": "presence-all-geojson"})[2])
+        status, _, body = self.get({**query, "format": "presence-all-geojson"})
+        self.assertEqual(status, 200)
+        compared = json.loads(body)
+        self.assertEqual(compared["monde_source_coverage"]["compared_source_ids"],
+                         ["survey-a", "survey-b"])
+        expected = [feature for feature in original["features"]
+                    if feature["properties"]["source_id"] in ("survey-a", "survey-b")]
+        self.assertEqual(compared["features"], expected)
+        self.assertTrue(expected)
+        for fmt in ("presence-all-map", "presence-all-csv", "presence-all-gpkg"):
+            status, headers, body = self.get({**query, "format": fmt})
+            self.assertEqual(status, 200)
+            if fmt == "presence-all-map":
+                self.assertIn(b"Original source", body)
+                self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+            elif fmt == "presence-all-csv":
+                rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+                self.assertEqual([row["feature_id"] for row in rows],
+                                 [row["id"] for row in expected])
+            else:
+                with NamedTemporaryFile(suffix=".gpkg") as target:
+                    Path(target.name).write_bytes(body)
+                    with sqlite3.connect(target.name) as db:
+                        ids = [row[0] for row in db.execute(
+                            "SELECT feature_id FROM original_points ORDER BY feature_id")]
+                self.assertEqual(ids, sorted(row["id"] for row in expected))
+        table = self.get({**self.knowledge(), "format": "table"})[2]
+        self.assertIn(b'Compare two original reporters across all entities', table)
+        self.assertIn(b'name="compare_a"', table)
+        self.assertIn(b'name="compare_b"', table)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_two_reporters_scope_rejections_and_missing_source(self):
+        base = {**self.knowledge(), "format": "presence-all-geojson"}
+        for bad in (
+                {"compare_a": "survey-a"},
+                {"compare_a": "survey-a", "compare_b": "survey-a"},
+                {"compare_a": "survey-a", "compare_b": ""},
+                {"compare_a": "survey-a", "compare_b": "\x7f"},
+                {"compare_a": "survey-a", "compare_b": "survey-b",
+                 "source_exact": "survey-a"},
+                {"compare_a": "survey-a", "compare_b": "survey-b",
+                 "source_prefix": "survey"},
+                {"compare_a": "survey-a", "compare_b": "survey-b",
+                 "entity": "site-1"},
+                {"compare_a": "survey-a", "compare_b": "survey-b",
+                 "format": "json"},
+        ):
+            self.assertEqual(self.get({**base, **bad})[0], 400, bad)
+        out = json.loads(self.get({
+            **base, "compare_a": "survey-a", "compare_b": "unknown-source"})[2])
+        self.assertEqual({f["properties"]["source_id"] for f in out["features"]},
+                         {"survey-a"})
+        self.assertEqual(out["monde_source_coverage"]["selected_sources"], 1)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_two_reporters_keep_presence_and_area_cutoffs(self):
+        from monde.source_pair_changes import source_directory_all_presence_geojson
+        directory = json.loads(self.get({**self.knowledge(), "format": "json"})[2])
+        for presence in ("earlier", "later", "both"):
+            query = {**self.knowledge(), "compare_a": "survey-a",
+                     "compare_b": "survey-b", "presence": presence,
+                     "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**query, "format": "presence-all-geojson"})
+            self.assertEqual(status, 200)
+            expected = source_directory_all_presence_geojson(
+                self.world, directory, presence, [-180, -90, 180, 90],
+                source_compare=("survey-a", "survey-b"))
+            self.assertEqual(json.loads(raw), expected)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
