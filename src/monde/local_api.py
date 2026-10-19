@@ -1236,17 +1236,32 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    comparing = "compare_a" in args or "compare_b" in args
+    if comparing:
+        if (not {"compare_a", "compare_b"}.issubset(args) or
+                args.get("format") not in
+                    ("presence-all-map", "presence-all-geojson",
+                     "presence-all-csv", "presence-all-gpkg") or
+                any(k in args for k in
+                    ("entity", "source", "source_exact", "source_prefix")) or
+                args["compare_a"] == args["compare_b"]):
+            raise ValueError("global comparison requires two distinct original reporters")
+        for key in ("compare_a", "compare_b"):
+            value = args[key]
+            if not 0 < len(value) <= 200 or any(
+                    ord(ch) < 32 or ord(ch) == 127 for ch in value):
+                raise ValueError("invalid compared original reporter")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
@@ -1391,6 +1406,39 @@ def _source_directory_html(document: dict, args: dict[str, str],
                     if "entity_focus" not in document else None)
     presence_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-map"})
                          if "entity_focus" in document else None)
+    global_compare_form = ""
+    if "entity_focus" not in document and len(document["sources"]) >= 2:
+        sources = [row["source_id"] for row in document["sources"]]
+        common = {k: v for k, v in args.items()
+                  if k in ("directory", "axis", "at", "from_known_at",
+                           "to_known_at", "from_at", "to_at", "known_at",
+                           "change", "presence", "bbox")}
+        hidden = "".join('<input type="hidden" name="' +
+                         escape(k, quote=True) + '" value="' +
+                         escape(v, quote=True) + '">' for k, v in common.items())
+        selectors = []
+        for key, selected, label in (("compare_a", 0, "First reporter"),
+                                     ("compare_b", 1, "Second reporter")):
+            options = "".join(
+                '<option value="' + escape(source, quote=True) + '"' +
+                (' selected' if i == selected else '') + '>' +
+                escape(source) + '</option>'
+                for i, source in enumerate(sources))
+            selectors.append('<label>' + label + ' <select name="' + key +
+                             '" required>' + options + '</select></label>')
+        global_compare_form = (
+            '<form action="/source-pair" method="get"><fieldset>'
+            '<legend>Compare two original reporters across all entities</legend>' +
+            hidden + " ".join(selectors) +
+            '<label>Evidence view <select name="format">'
+            '<option value="presence-all-map">Shared source evidence map</option>'
+            '<option value="presence-all-geojson">Original Point GeoJSON</option>'
+            '<option value="presence-all-csv">Original Point CSV</option>'
+            '<option value="presence-all-gpkg">Offline GeoPackage</option>'
+            '</select></label> '
+            '<button type="submit">Compare original source Points</button>'
+            '<p>Original reports only; no inferred agreement or movement.</p>'
+            '</fieldset></form>')
     region_gpkg_form = ""
     if "entity_focus" not in document:
         hidden = "".join(
@@ -1592,7 +1640,7 @@ def _source_directory_html(document: dict, args: dict[str, str],
         escape(document["interpretation"]) + '</p>' +
         ('<p>Exact original entity: <strong>' +
          escape(document["entity_focus"]) + '</strong></p>'
-         if "entity_focus" in document else '') + pair_form + '<p>' +
+         if "entity_focus" in document else '') + pair_form + global_compare_form + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
         escape(csv_link, quote=True) + '">Download matching coverage CSV</a>' +
@@ -2267,6 +2315,8 @@ def create_server(state: str | Path, port: int = 0, *,
                     if args.get("directory") == "1":
                         document = _source_directory_query(world, args)
                         output_format = args.get("format", "table")
+                        compare_sources = ((args["compare_a"], args["compare_b"])
+                                           if "compare_a" in args else None)
                         if output_format == "json":
                             return self._reply(200, document)
                         if output_format == "presence-json":
@@ -2315,13 +2365,13 @@ def create_server(state: str | Path, port: int = 0, *,
                             return self._html(source_directory_all_presence_map(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact")))
+                                args.get("source_exact"), compare_sources))
                         if output_format == "presence-all-geojson":
                             from .source_pair_changes import source_directory_all_presence_geojson
                             return self._reply(200, source_directory_all_presence_geojson(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact")))
+                                args.get("source_exact"), compare_sources))
                         if output_format in ("presence-gpkg", "presence-all-gpkg"):
                             from .source_pair_changes import (
                                 source_directory_entity_presence_gpkg,
@@ -2332,7 +2382,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             body = (export(
                                 world, document, args.get("presence"),
                                 _bbox(args["bbox"]) if "bbox" in args else None,
-                                args.get("source_exact"))
+                                args.get("source_exact"), compare_sources)
                                 if output_format == "presence-all-gpkg" else
                                 export(world, document, args.get("presence")))
                             if len(body) > max_response_bytes:
@@ -2401,7 +2451,7 @@ def create_server(state: str | Path, port: int = 0, *,
                                 body = source_directory_all_presence_csv(
                                     world, document, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
-                                    args.get("source_exact")
+                                    args.get("source_exact"), compare_sources
                                 ).encode("utf-8")
                             elif output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv

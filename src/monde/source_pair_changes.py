@@ -868,7 +868,7 @@ def _valid_presence_bbox(bbox):
 
 
 def source_directory_all_presence_geojson(world, directory, presence=None, bbox=None,
-                                          source_exact=None):
+                                          source_exact=None, source_compare=None):
     """One offline GIS layer of original source Points across *all* entities.
 
     Export only the original sources selected by the existing source directory
@@ -887,8 +887,17 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
             not isinstance(source_exact, str) or not 0 < len(source_exact) <= 200 or
             any(ord(ch) < 32 or ord(ch) == 127 for ch in source_exact)):
         raise ValueError("invalid exact source reporter")
+    if source_compare is not None:
+        if (source_exact is not None or not isinstance(source_compare, (tuple, list))
+                or len(source_compare) != 2 or source_compare[0] == source_compare[1]
+                or any(not isinstance(source, str) or
+                       not 0 < len(source) <= 200 or
+                       any(ord(ch) < 32 or ord(ch) == 127 for ch in source)
+                       for source in source_compare)):
+            raise ValueError("two distinct original reporters required")
     sources = {row["source_id"] for row in directory["sources"]
-               if source_exact is None or row["source_id"] == source_exact}
+               if (source_exact is None or row["source_id"] == source_exact)
+               and (source_compare is None or row["source_id"] in source_compare)}
     by_identity = {}
     for period in ("earlier", "later"):
         cutoff = directory["cutoffs"][period]
@@ -941,6 +950,7 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
         **({"presence_filter": presence} if presence is not None else {}),
         **({"bbox_filter": list(bbox)} if bbox is not None else {}),
         **({"exact_source_filter": source_exact} if source_exact is not None else {}),
+        **({"compared_source_ids": list(source_compare)} if source_compare is not None else {}),
         "interpretation": (
             "Original source Point presence across two cutoffs; not "
             "inferred truth, movement or a consensus position"),
@@ -950,14 +960,14 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 
 
 def source_directory_all_presence_map(world, directory, presence=None, bbox=None,
-                                      source_exact=None):
+                                      source_exact=None, source_compare=None):
     """Render the same *original* global source Points on the existing offline map.
 
     Selection is identical to GeoJSON/CSV/GPKG. Display bounds never assert
     verified position, movement or agreement between independent sources.
     """
     geojson = source_directory_all_presence_geojson(
-        world, directory, presence, bbox, source_exact)
+        world, directory, presence, bbox, source_exact, source_compare)
     features = geojson["features"]
     for feature in features:
         feature["properties"]["monde_inside_bbox"] = True
@@ -978,10 +988,10 @@ def source_directory_all_presence_map(world, directory, presence=None, bbox=None
 
 
 def source_directory_all_presence_csv(world, directory, presence=None, bbox=None,
-                                      source_exact=None):
+                                      source_exact=None, source_compare=None):
     """Spreadsheet-safe original Point identities, using the global GeoJSON selection."""
     features = source_directory_all_presence_geojson(
-        world, directory, presence, bbox, source_exact)["features"]
+        world, directory, presence, bbox, source_exact, source_compare)["features"]
     earlier, later = directory["cutoffs"]["earlier"], directory["cutoffs"]["later"]
 
     def safe(value):
@@ -1013,10 +1023,10 @@ def source_directory_all_presence_csv(world, directory, presence=None, bbox=None
 
 
 def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None,
-                                       source_exact=None):
+                                       source_exact=None, source_compare=None):
     """Convert the same evidence selection to the original offline GIS format."""
     result = source_directory_all_presence_geojson(
-        world, directory, presence, bbox, source_exact)
+        world, directory, presence, bbox, source_exact, source_compare)
     result["monde_source_coverage"]["schema"] = (
         "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1")
     return _presence_geojson_to_gpkg(result)
