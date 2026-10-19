@@ -963,7 +963,8 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
 def source_directory_global_pair_matrix(world, directory, presence=None,
                                         bbox=None, source_compare=None,
                                         transition=None, gap_trend=None,
-                                        min_gap_km=None, gap_order=None):
+                                        min_gap_km=None, gap_order=None,
+                                        gap_window=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1037,6 +1038,9 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
 
 
     matrix = filter_reporter_matrix_transitions(matrix, transition, gap_trend)
+    if gap_window not in (None, "either", "both") or (
+            gap_window is not None and min_gap_km is None):
+        raise ValueError("invalid reporter gap window")
     if min_gap_km is None and gap_order is None:
         return matrix
     if min_gap_km is not None and (
@@ -1050,6 +1054,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         values = [row[p]["separation_km"]["nearest_km"]
                   for p in ("earlier", "later")
                   if row[p]["separation_km"] is not None]
+        if gap_window == "both":
+            return min(values) if len(values) == 2 else None
         return max(values) if values else None
     before = len(matrix["entities"])
     rows = [r for r in matrix["entities"] if min_gap_km is None or
@@ -1067,10 +1073,14 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             "per_period": counts, "gap_selection": {
                 "minimum_nearest_km": min_gap_km,
                 "order": gap_order or "entity",
+                "window": gap_window or "either",
                 "entities_before_gap_filter": before,
                 "matching_entities": len(rows),
-                "interpretation": "Original reporter Point gaps at either "
-                                  "cutoff, not truth or physical movement."}}
+                "interpretation": (
+                    "Original reporter Point gaps at both cutoffs; "
+                    if gap_window == "both" else
+                    "Original reporter Point gaps at either cutoff; ") +
+                    "not truth or physical movement."}}
 
 
 def filter_reporter_matrix_transitions(matrix, transition=None, gap_trend=None):
@@ -1162,6 +1172,8 @@ def source_directory_global_pair_transition_geojson(
            if focus_entity is not None else {}),
         "transition_counts": matrix["transition_counts"],
         "gap_trend_counts": matrix["gap_trend_counts"],
+        **({"gap_selection": matrix["gap_selection"]}
+           if "gap_selection" in matrix else {}),
         **({"transition_filter": matrix["transition_filter"]}
            if "transition_filter" in matrix else {}),
         **({"gap_trend_filter": matrix["gap_trend_filter"]}

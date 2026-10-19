@@ -999,3 +999,19 @@ The same read-only `/source-pair?directory=1` reporter matrix (JSON, CSV, HTML, 
 ## Prioritize original reporter Point separation (WORK-0136)
 
 The same two-reporter matrix accepts `min_gap_km=10` and `gap_order=largest` in JSON, native HTML, CSV, GeoJSON and browser map outputs. The table offers a native GET form preserving sources, bitemporal cutoffs, transition and spatial area. The qualifying distance is the *nearest original reporter Point gap* measured at **either** cutoff; missing joint reports remain UNKNOWN rather than zero. Larger gaps appear first, with entity ID as a deterministic tie-breaker. The source points and evidence identities are unchanged; no consensus, physical movement, reliability assessment or snapshot mutation is implied.
+
+## Persistent two-cutoff reporter gaps (WORK-0137)
+
+The read-only `/source-pair` reporter matrix accepts `min_gap_km=K&gap_window=both`
+for its JSON, HTML, CSV, original Point GeoJSON and offline map outputs.
+An entity matches only when **both sources report original Points at both cutoffs**
+and their minimum cross-source Point separation reaches K kilometers at each cutoff.
+Missing joint reports are UNKNOWN, not zero or persistent evidence.
+
+The default `gap_window=either` preserves the previous any-cutoff threshold.
+`gap_window` without `min_gap_km` is rejected. With `gap_order=largest`,
+the ranking uses the **smaller** of the two cutoff nearest-separation values.
+A native matrix form selects either or both cutoffs. All output formats retain
+original source/assertion/evidence IDs and both temporal axes. Neither
+verified location, source accuracy, physical motion nor consensus is inferred.
+No new service, dependency or modification of saved WorldMini is introduced.
