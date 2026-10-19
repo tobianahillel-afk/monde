@@ -1295,7 +1295,7 @@ def _reporter_evidence_offline_html(matrix: dict) -> bytes:
         "".join(rows) + '</tbody></table>' +
         ('<p>No entities match all selected comparison filters. '
          'Original Point observations may still be present in the '
-         'source data files.</p>' if not rows else '')
+         'source data files.</p>' if not rows else '') +
         '<p>Extract this ZIP before opening this report to follow '
         'the relative links. Verify files against manifest.json for integrity.</p>'
         '</body></html>'
