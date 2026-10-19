@@ -3886,5 +3886,67 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_persistent_reporter_gap_real_http_parity(self):
+        """Verify original source Points at both cutoffs, never inferred position."""
+        for cutoff in (self.knowledge(),
+                       {"directory": "1", "axis": "world",
+                        "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            base = {**cutoff, "compare_a": "survey-a", "compare_b": "survey-b"}
+            status, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            original = json.loads(raw)
+            def gap(row):
+                values = [row[p]["separation_km"]["nearest_km"]
+                          for p in ("earlier", "later")
+                          if row[p]["separation_km"] is not None]
+                return min(values) if len(values) == 2 else None
+            expected = [r for r in original["entities"] if gap(r) is not None]
+            expected.sort(key=lambda r: (-gap(r), r["entity"]))
+            query = {**base, "min_gap_km": "0", "gap_window": "both",
+                     "gap_order": "largest"}
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            self.assertEqual([r["entity"] for r in matrix["entities"]],
+                             [r["entity"] for r in expected])
+            self.assertEqual(matrix["gap_selection"]["window"], "both")
+            _, _, raw = self.get({**query, "format": "presence-all-compare-csv"})
+            csv_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual([r["entity"] for r in csv_rows[::2]],
+                             [r["entity"] for r in expected])
+            _, _, raw = self.get({**query, "format": "presence-all-compare-geojson"})
+            geojson = json.loads(raw)
+            self.assertEqual({f["properties"]["entity"] for f in geojson["features"]},
+                             {r["entity"] for r in expected})
+            self.assertEqual(geojson["monde_source_coverage"]["reporter_matrix"]
+                             ["gap_selection"]["window"], "both")
+            status, _, html = self.get({**query, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b'name="gap_window"', html)
+            self.assertIn(b'Both cutoffs (persistent)', html)
+            self.assertIn(b'value="both" selected', html)
+            self.assertEqual(self.get({**query, "format": "presence-all-compare-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_persistent_gap_input_guard_and_previous_either_semantics(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "format": "presence-all-compare-json"}
+        _, _, raw = self.get({**base, "min_gap_km": "0"})
+        previous = json.loads(raw)
+        _, _, raw = self.get({**base, "min_gap_km": "0", "gap_window": "either"})
+        self.assertEqual(previous["entities"], json.loads(raw)["entities"])
+        for invalid in ({"gap_window": "both"},
+                        {"gap_window": "", "min_gap_km": "0"},
+                        {"gap_window": "BOTH", "min_gap_km": "0"},
+                        {"gap_window": "before", "min_gap_km": "0"},
+                        {"gap_window": "both", "min_gap_km": "nan"},
+                        {"gap_window": "both", "min_gap_km": "0",
+                         "format": "presence-all-map"}):
+            status, _, raw = self.get({**base, **invalid})
+            self.assertEqual(status, 400, invalid)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
