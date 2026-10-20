@@ -1,4 +1,5 @@
 """Evidence-bundle offline verifier tests: real ZIP content and CLI execution."""
+import csv
 import io
 import json
 from hashlib import sha256
@@ -10,7 +11,8 @@ import unittest
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from monde.evidence_bundle import (BundleVerificationError, SCHEMA, compare_bundles,
-                                    compare_points_geojson, verify_bundle)
+                                    compare_points_csv, compare_points_geojson,
+                                    verify_bundle)
 
 
 def fixture():
@@ -595,6 +597,106 @@ class TestOfflineBundleGeoJSONChanges(unittest.TestCase):
                 args = basic + tail if tail != ["--changes-geojson"] else basic[:4] + tail
                 invalid = subprocess.run(args, text=True, capture_output=True, check=False)
                 self.assertEqual(invalid.returncode, 2, invalid.stderr)
+
+
+
+class TestOfflineBundleCsvChanges(unittest.TestCase):
+    """Verified reporter ZIPs to analysis CSV without inferred world changes."""
+
+    _archive = staticmethod(TestOfflineEntityInspection._archive)
+    _report = staticmethod(TestOfflineEntityInspection._report)
+
+    def test_multiplicity_provenance_comparison_metadata(self):
+        removed = self._report("A", "survey-a", "old")
+        added = self._report("B", "survey-b", "new")
+        before = self._archive([], [removed, removed])
+        after = self._archive([], [added, added, added])
+        output = compare_points_csv(before, after)
+        rows = list(csv.DictReader(io.StringIO(output)))
+        self.assertEqual(len(rows), 2)
+        by_kind = {r["change"]: r for r in rows}
+        self.assertEqual(by_kind["REMOVED"]["count"], "2")
+        self.assertEqual(by_kind["ADDED"]["count"], "3")
+        self.assertEqual(by_kind["REMOVED"]["assertion_id"], "old")
+        self.assertEqual(by_kind["ADDED"]["evidence_id"], "doc-new")
+        self.assertEqual(by_kind["ADDED"]["longitude"], "2.3")
+        self.assertEqual(by_kind["ADDED"]["latitude"], "48.2")
+        self.assertEqual(by_kind["REMOVED"]["source_a"], "survey-a")
+        self.assertEqual(by_kind["ADDED"]["source_b"], "survey-b")
+        self.assertEqual(by_kind["ADDED"]["authenticity"], "NOT_ATTESTED")
+        self.assertEqual(by_kind["ADDED"]["interpretation"],
+                         "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+        self.assertIsInstance(json.loads(by_kind["ADDED"]["before_cutoffs_json"]), dict)
+        self.assertIsInstance(json.loads(by_kind["ADDED"]["after_cutoffs_json"]), dict)
+        original = json.loads(by_kind["ADDED"]["original_properties_json"])
+        self.assertEqual(original["assertion_id"], "new")
+        self.assertNotIn("monde_bundle_change", original)
+        self.assertNotIn("monde_bundle_count", original)
+
+    def test_formula_strings_escaped_but_original_properties_remain_unmodified(self):
+        point = self._report(" =SUM(1,1)", "survey-a", "@HYPERLINK")
+        point["properties"]["evidence_id"] = "+cmd"
+        point["properties"]["locator"] = "=danger"
+        point["geometry"]["coordinates"] = [-2.5, 47.2, 11]
+        output = compare_points_csv(self._archive([], []),
+                                    self._archive([], [point]))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual(row["entity"], "' =SUM(1,1)")
+        self.assertEqual(row["assertion_id"], "'@HYPERLINK")
+        self.assertEqual(row["evidence_id"], "'+cmd")
+        self.assertEqual(row["longitude"], "-2.5")
+        self.assertEqual(row["altitude"], "11")
+        raw = json.loads(row["original_properties_json"])
+        self.assertEqual(raw["entity"], " =SUM(1,1)")
+        self.assertEqual(raw["locator"], "=danger")
+
+    def test_identical_and_matrix_only_deltas_emit_header_without_fake_points(self):
+        before = self._archive([], [])
+        same = list(csv.DictReader(io.StringIO(compare_points_csv(before, before))))
+        self.assertEqual(same, [])
+        matrix = self._archive([{"entity": "A", "status": "later"}], [])
+        changed = compare_points_csv(before, matrix)
+        self.assertEqual(list(csv.DictReader(io.StringIO(changed))), [])
+        self.assertIn("original_properties_json", changed.splitlines()[0])
+
+    def test_real_cli_outputs_csv_preserves_both_zips_and_legacy_json(self):
+        before = self._archive([], [])
+        after = self._archive([], [self._report("A", "survey-b", "new")])
+        with tempfile.TemporaryDirectory() as tmp:
+            old = Path(tmp) / "before.zip"
+            new = Path(tmp) / "after.zip"
+            old.write_bytes(before)
+            new.write_bytes(after)
+            cmd = [sys.executable, "-m", "monde.evidence_bundle",
+                   str(old), "--compare", str(new)]
+            result = subprocess.run(cmd + ["--changes-csv"], capture_output=True,
+                                    text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            rows = list(csv.DictReader(io.StringIO(result.stdout)))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["assertion_id"], "new")
+            legacy = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            self.assertEqual(legacy.returncode, 0, legacy.stderr)
+            self.assertIn("comparison", json.loads(legacy.stdout))
+            self.assertEqual(old.read_bytes(), before)
+            self.assertEqual(new.read_bytes(), after)
+            for invalid in [
+                [sys.executable, "-m", "monde.evidence_bundle",
+                 str(old), "--changes-csv"],
+                cmd + ["--changes-csv", "--by-source"],
+                cmd + ["--changes-csv", "--changes-geojson"],
+                cmd + ["--changes-csv", "--entity", "A"],
+            ]:
+                failed = subprocess.run(invalid, capture_output=True,
+                                        text=True, check=False)
+                self.assertEqual(failed.returncode, 2, failed.stderr)
+
+    def test_unsupported_original_point_geometry_rejected(self):
+        point = self._report("A", "survey-a", "bad")
+        point["geometry"]["coordinates"] = [181, 48]
+        with self.assertRaises(BundleVerificationError):
+            compare_points_csv(self._archive([], []), self._archive([], [point]))
+
 
 
 if __name__ == "__main__":
