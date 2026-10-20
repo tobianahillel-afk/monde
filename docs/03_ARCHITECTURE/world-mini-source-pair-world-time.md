@@ -1187,3 +1187,62 @@ not physical movement, a truth update or an authenticated source revision.
 Different filters or temporal cutoffs can alter the exported selection; this
 is flagged separately. All integrity hashes come from the archives
 themselves and retain `authenticity=NOT_ATTESTED`.
+
+
+### Inspect one original reporter entity across verified ZIP exports
+
+After exporting two bundles for the **same two reporters and temporal axis**, the
+existing offline verifier can now show the full original-evidence delta for one
+exact entity ID:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --entity 'entity-id'
+```
+
+The `entity_inspection` JSON result contains the original earlier/later matrix
+rows (or `null` when absent), the original Point feature records **added** and
+**removed** between exports with multiplicities, and the count of unchanged
+reports. Feature metadata retains the original `source_id`, `assertion_id`,
+`evidence_id` and coordinates. Other entities' evidence is not returned in
+this focused detail. The global comparison remains available as before.
+Missing entities return a validation error. Both ZIPs must pass the existing
+manifest and role checks before comparison; neither ZIP is extracted,
+modified or sent to a server. Archive-internal SHA-256 hashes **do not attest**
+source authenticity; differences reflect *exported evidence*, not physical
+movement or independently established world truth.
+
+
+## Offline batch inspection of verified original evidence (WORK-0144)
+
+To inspect **every changed entity** between two independently verified original-reporter
+ZIP exports in one invocation, use:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --inspect-changed
+```
+
+The `changed_entity_inspections` array contains the complete original Point
+features added/removed, multiplicity counts, and before/after matrix rows for
+entities whose matrix rows **or original source Points** changed. The output
+is deterministic by entity ID and retains unchanged original reports only as
+counts. Unchanged entities are omitted; original Points with no valid entity
+identifier make batch inspection fail instead of being silently dropped.
+Both ZIPs are verified before comparing and remain untouched. Flags
+`--entity` and `--inspect-changed` are mutually exclusive. The existing
+single-entity CLI/API outputs are unchanged. Differences may stem from
+selection filters or temporal cutoffs and do **not** attest to authenticity,
+world-state changes, physical movement or source reliability.
+
+### Summarize changes by original reporter (WORK-0144)
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --by-source
+```
+
+The `original_reporter_changes` JSON list counts original Point reports
+before/after and their exact added/removed multiplicities for each verified
+reporter, with sorted affected entity IDs. Use `--by-source --inspect-changed`
+to include each affected entity's full original evidence records. This does
+not include analytical witnesses or claim physical change, reporter truth,
+or independent authenticity (`NOT_ATTESTED`). Both archives must validate;
+unknown reporter or missing entity labels fail closed. ZIPs stay unchanged.

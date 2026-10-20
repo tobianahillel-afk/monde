@@ -105,13 +105,23 @@ def verify_bundle(data: bytes) -> dict:
         raise BundleVerificationError("invalid or corrupted ZIP") from exc
 
 
-def compare_bundles(before: bytes, after: bytes) -> dict:
+def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
+                    inspect_changed: bool = False,
+                    by_source: bool = False) -> dict:
     """Compare two verified original-reporter exports, without asserting truth.
 
     Repeated source reports are counted separately. Different selections,
     bitemporal cutoffs or exported analytical witnesses are not interpreted as
     real-world events, movement or independent source authentication.
     """
+    if entity is not None and (not isinstance(entity, str) or not entity
+                               or len(entity) > 512 or
+                               any(ord(ch) < 32 for ch in entity)):
+        raise BundleVerificationError("invalid entity selector")
+    if type(inspect_changed) is not bool or (inspect_changed and entity is not None):
+        raise BundleVerificationError("inspect_changed cannot be combined with entity")
+    if type(by_source) is not bool or (by_source and entity is not None):
+        raise BundleVerificationError("by_source cannot be combined with entity")
     left = verify_bundle(before)
     right = verify_bundle(after)
     for key in ("schema", "source_a", "source_b", "axis"):
@@ -139,10 +149,25 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
             original = Counter(json.dumps(
                 feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
                 for feature in points["features"])
-            return manifest, by_id, original
+            selected = Counter(json.dumps(
+                feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                for feature in points["features"]
+                if entity is not None and feature["properties"].get("entity") == entity)
+            grouped = {}
+            if inspect_changed:
+                for feature in points["features"]:
+                    name = feature["properties"].get("entity")
+                    if (not isinstance(name, str) or not name or len(name) > 512
+                            or any(ord(char) < 32 for char in name)):
+                        raise BundleVerificationError(
+                            "original Point missing a valid entity for batch inspection")
+                    serialized = json.dumps(
+                        feature, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                    grouped.setdefault(name, Counter())[serialized] += 1
+            return manifest, by_id, original, selected, grouped
 
-    left_manifest, left_rows, left_points = contents(before)
-    right_manifest, right_rows, right_points = contents(after)
+    left_manifest, left_rows, left_points, left_selected, left_grouped = contents(before)
+    right_manifest, right_rows, right_points, right_selected, right_grouped = contents(after)
     added = sorted(right_rows.keys() - left_rows.keys())
     removed = sorted(left_rows.keys() - right_rows.keys())
     common = left_rows.keys() & right_rows.keys()
@@ -151,7 +176,7 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
         name for name in FILES
         if left_manifest["files"][name]["sha256"]
         != right_manifest["files"][name]["sha256"])
-    return {
+    result = {
         "valid": True,
         "comparison": "MONDE_ORIGINAL_REPORTER_BUNDLE_COMPARISON_V1",
         "source_a": left["source_a"], "source_b": left["source_b"],
@@ -170,6 +195,88 @@ def compare_bundles(before: bytes, after: bytes) -> dict:
         "authenticity": "NOT_ATTESTED",
         "interpretation": "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE",
     }
+    if by_source:
+        reporters = {
+            source: {
+                "source_id": source,
+                "original_points_before_count": 0,
+                "original_points_after_count": 0,
+                "original_points_added_count": 0,
+                "original_points_removed_count": 0,
+                "changed_entity_ids": set(),
+            }
+            for source in (left["source_a"], left["source_b"])
+        }
+        # Count only exact original observations; never analytical witnesses.
+        for field, observations in (
+            ("original_points_before_count", left_points),
+            ("original_points_after_count", right_points),
+            ("original_points_added_count", right_points - left_points),
+            ("original_points_removed_count", left_points - right_points),
+        ):
+            for serialized, count in observations.items():
+                props = json.loads(serialized)["properties"]
+                source = props.get("source_id")
+                identifier = props.get("entity")
+                if not isinstance(source, str) or source not in reporters:
+                    raise BundleVerificationError(
+                        "original Point has reporter outside verified pair")
+                if (not isinstance(identifier, str) or not identifier
+                        or len(identifier) > 512
+                        or any(ord(char) < 32 for char in identifier)):
+                    raise BundleVerificationError(
+                        "original Point missing a valid entity for source summary")
+                reporters[source][field] += count
+                if field in ("original_points_added_count",
+                             "original_points_removed_count"):
+                    reporters[source]["changed_entity_ids"].add(identifier)
+        result["original_reporter_changes"] = [
+            {**record, "changed_entity_ids": sorted(record["changed_entity_ids"])}
+            for record in reporters.values()
+        ]
+
+    def inspect_one(identifier, original_before, original_after):
+        def changed_features(delta):
+            return [{"feature": json.loads(raw), "count": count}
+                    for raw, count in sorted(delta.items())]
+
+        return {
+            "entity": identifier,
+            "before_matrix_row": (json.loads(left_rows[identifier])
+                                  if identifier in left_rows else None),
+            "after_matrix_row": (json.loads(right_rows[identifier])
+                                 if identifier in right_rows else None),
+            "original_points_before_count": sum(original_before.values()),
+            "original_points_after_count": sum(original_after.values()),
+            "original_points_unchanged_count": sum(
+                (original_before & original_after).values()),
+            "original_points_added": changed_features(
+                original_after - original_before),
+            "original_points_removed": changed_features(
+                original_before - original_after),
+        }
+
+    if entity is not None:
+        if (entity not in left_rows and entity not in right_rows
+                and not left_selected and not right_selected):
+            raise BundleVerificationError("entity absent from both verified exports")
+        result["entity_inspection"] = inspect_one(
+            entity, left_selected, right_selected)
+    if inspect_changed:
+        # Include changes exclusively in original source Points even where the
+        # exported matrix row has not changed. Preserve repeated observations.
+        candidates = set(added) | set(removed) | set(changed)
+        for identifier in left_grouped.keys() | right_grouped.keys():
+            if left_grouped.get(identifier, Counter()) != right_grouped.get(
+                    identifier, Counter()):
+                candidates.add(identifier)
+        result["changed_entity_inspections"] = [
+            inspect_one(identifier,
+                        left_grouped.get(identifier, Counter()),
+                        right_grouped.get(identifier, Counter()))
+            for identifier in sorted(candidates)
+        ]
+    return result
 
 
 def main(argv=None):
@@ -177,7 +284,22 @@ def main(argv=None):
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
     parser.add_argument("--compare", type=Path, metavar="OTHER_ZIP",
                         help="Compare verified export with another original-reporter ZIP")
+    selectors = parser.add_mutually_exclusive_group()
+    selectors.add_argument("--entity", metavar="ENTITY_ID",
+                           help="Inspect one entity's original reports in both verified exports")
+    selectors.add_argument("--inspect-changed", action="store_true",
+                           help="Inspect every changed matrix row or original Point report")
+    parser.add_argument("--by-source", action="store_true",
+                        help="Summarize original Point evidence changes by reporter")
     args = parser.parse_args(argv)
+    if args.entity is not None and args.compare is None:
+        parser.error("--entity requires --compare")
+    if args.inspect_changed and args.compare is None:
+        parser.error("--inspect-changed requires --compare")
+    if args.by_source and args.compare is None:
+        parser.error("--by-source requires --compare")
+    if args.by_source and args.entity is not None:
+        parser.error("--by-source cannot be combined with --entity")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -187,7 +309,10 @@ def main(argv=None):
         else:
             if args.compare.stat().st_size > MAX_ARCHIVE:
                 raise BundleVerificationError("comparison archive exceeds safe size")
-            result = compare_bundles(original, args.compare.read_bytes())
+            result = compare_bundles(original, args.compare.read_bytes(),
+                                     entity=args.entity,
+                                     inspect_changed=args.inspect_changed,
+                                     by_source=args.by_source)
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1
