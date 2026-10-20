@@ -9,7 +9,8 @@ import tempfile
 import unittest
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from monde.evidence_bundle import BundleVerificationError, SCHEMA, compare_bundles, verify_bundle
+from monde.evidence_bundle import (BundleVerificationError, SCHEMA, compare_bundles,
+                                    compare_points_geojson, verify_bundle)
 
 
 def fixture():
@@ -495,6 +496,91 @@ class TestOfflineEntityInspection(unittest.TestCase):
                     [sys.executable, "-m", "monde.evidence_bundle",
                      str(before), *tail], text=True, capture_output=True, check=False)
                 self.assertEqual(invalid.returncode, 2)
+
+class TestOfflineBundleGeoJSONChanges(TestOfflineEntityInspection):
+    """Real zipped source reports to standalone GIS-ready delta features."""
+
+    def test_original_point_multiplicity_and_source_provenance(self):
+        first = self._report("A", "survey-a", "old-1")
+        second = self._report("A", "survey-b", "new-2")
+        unchanged = self._report("B", "survey-a", "same")
+        before = self._archive([], [first, first, unchanged])
+        after = self._archive([], [second, second, second, unchanged])
+        output = compare_points_geojson(before, after)
+        self.assertEqual(output["type"], "FeatureCollection")
+        self.assertEqual(len(output["features"]), 2)
+        by_dir = {f["properties"]["monde_bundle_change"]: f
+                  for f in output["features"]}
+        self.assertEqual(by_dir["REMOVED"]["properties"]["monde_bundle_count"], 2)
+        self.assertEqual(by_dir["ADDED"]["properties"]["monde_bundle_count"], 3)
+        self.assertEqual(by_dir["REMOVED"]["properties"]["assertion_id"], "old-1")
+        self.assertEqual(by_dir["ADDED"]["properties"]["evidence_id"], "doc-new-2")
+        self.assertEqual(by_dir["ADDED"]["geometry"], second["geometry"])
+        self.assertEqual(output["monde_bundle_comparison"]["original_points_added"], 3)
+        self.assertEqual(output["monde_bundle_comparison"]["original_points_removed"], 2)
+        self.assertEqual(output["monde_bundle_comparison"]["authenticity"], "NOT_ATTESTED")
+        self.assertEqual(output["monde_bundle_comparison"]["interpretation"],
+                         "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
+        self.assertNotIn("same", json.dumps(output["features"]))
+        self.assertEqual(before, self._archive([], [first, first, unchanged]))
+        self.assertEqual(after, self._archive([], [second, second, second, unchanged]))
+
+    def test_empty_and_matrix_only_differences_produce_empty_geojson(self):
+        row = {"entity": "A", "status": "earlier"}
+        same = self._report("A", "survey-a", "same")
+        before = self._archive([row], [same])
+        self.assertEqual(compare_points_geojson(before, before)["features"], [])
+        after = self._archive([{"entity": "A", "status": "later"}], [same])
+        result = compare_points_geojson(before, after)
+        self.assertEqual(result["features"], [])
+        self.assertEqual(result["monde_bundle_comparison"]["original_points_added"], 0)
+
+    def test_rejects_unsupported_geometry_and_provenance_conflicts(self):
+        point = self._report("A", "survey-a", "a1")
+        original = self._archive([], [])
+        broken = [
+            {**point, "geometry": {"type": "LineString", "coordinates": [[2, 48], [3, 49]]}},
+            {**point, "geometry": {"type": "Point", "coordinates": [181, 48]}},
+            {**point, "geometry": {"type": "Point", "coordinates": [2, True]}},
+            {**point, "properties": {**point["properties"], "monde_bundle_count": 7}},
+            {**point, "properties": {**point["properties"], "source_id": "unknown"}},
+            {**point, "properties": {**point["properties"], "monde_original_observation": False}},
+        ]
+        for feature in broken:
+            with self.subTest(feature=feature):
+                after = self._archive([], [feature])
+                with self.assertRaises(BundleVerificationError):
+                    compare_points_geojson(original, after)
+
+    def test_cli_real_zip_geojson_and_legacy_comparison_unchanged(self):
+        feature = self._report("A", "survey-a", "new")
+        before = self._archive([], [])
+        after = self._archive([], [feature])
+        with tempfile.TemporaryDirectory() as folder:
+            old_path = Path(folder) / "before.zip"
+            new_path = Path(folder) / "after.zip"
+            old_path.write_bytes(before)
+            new_path.write_bytes(after)
+            basic = [sys.executable, "-m", "monde.evidence_bundle", str(old_path),
+                     "--compare", str(new_path)]
+            out = subprocess.run(basic + ["--changes-geojson"], text=True,
+                                 capture_output=True, check=False)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            result = json.loads(out.stdout)
+            self.assertEqual(result["type"], "FeatureCollection")
+            self.assertEqual(result["features"][0]["properties"]["assertion_id"], "new")
+            legacy = subprocess.run(basic, text=True, capture_output=True, check=False)
+            self.assertEqual(legacy.returncode, 0, legacy.stderr)
+            self.assertIn("comparison", json.loads(legacy.stdout))
+            self.assertNotIn("type", json.loads(legacy.stdout))
+            self.assertEqual(old_path.read_bytes(), before)
+            self.assertEqual(new_path.read_bytes(), after)
+            for tail in (["--changes-geojson"], ["--entity", "A", "--changes-geojson"],
+                         ["--changes-geojson", "--by-source"]):
+                args = basic + tail if tail != ["--changes-geojson"] else basic[:4] + tail
+                invalid = subprocess.run(args, text=True, capture_output=True, check=False)
+                self.assertEqual(invalid.returncode, 2, invalid.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
