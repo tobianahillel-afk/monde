@@ -1246,3 +1246,31 @@ to include each affected entity's full original evidence records. This does
 not include analytical witnesses or claim physical change, reporter truth,
 or independent authenticity (`NOT_ATTESTED`). Both archives must validate;
 unknown reporter or missing entity labels fail closed. ZIPs stay unchanged.
+
+
+### Offline GIS map of verified original Point changes (WORK-0145)
+
+To inspect two previously downloaded verified reporter ZIP exports as portable
+GeoJSON, without a local server or additional dependency:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --changes-geojson > original-point-delta.geojson
+```
+
+This returns a standard `FeatureCollection` of the original source-reported
+Point features **added** or **removed from the selected exports**. Every feature
+preserves its original geometry and source/assertion/evidence properties and
+adds `monde_bundle_change` (`ADDED`/`REMOVED`) and
+`monde_bundle_count` (multiplicity of an otherwise identical report).
+The `monde_bundle_comparison` foreign member records source identities,
+world/knowledge cutoffs, numbers of reported differences, and the
+`NOT_ATTESTED` authenticity warning. Unchanged original reports and
+derived analytical witnesses are not turned into change markers. No coordinates
+are inferred and **an export difference is not evidence of physical movement**.
+
+Both archives are verified before export and never modified. Unsupported
+geometry, invalid WGS84 Point coordinates, unknown reporter identity, and
+collisions with reserved output fields are refused. The new output switch
+requires `--compare` and cannot be mixed with `--entity`,
+`--inspect-changed`, or `--by-source`. Existing comparison JSON stays
+unchanged unless explicitly selecting this GIS format.

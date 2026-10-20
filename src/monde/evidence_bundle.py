@@ -279,6 +279,71 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
     return result
 
 
+
+def compare_points_geojson(before: bytes, after: bytes) -> dict:
+    """Map exact changes in original source Points, not real-world movement.
+
+    A duplicate source observation is one Feature with an explicit multiplicity.
+    Original source/assertion/evidence properties and geometry are preserved.
+    """
+    comparison = compare_bundles(before, after, inspect_changed=True)
+    features = []
+    for entity in comparison["changed_entity_inspections"]:
+        for key, direction in (("original_points_removed", "REMOVED"),
+                               ("original_points_added", "ADDED")):
+            for change in entity[key]:
+                feature = change["feature"]
+                count = change["count"]
+                if (feature.get("type") != "Feature"
+                        or not isinstance(count, int) or isinstance(count, bool)
+                        or count < 1):
+                    raise BundleVerificationError("invalid original Point change")
+                properties = feature.get("properties")
+                geometry = feature.get("geometry")
+                if (not isinstance(properties, dict)
+                        or properties.get("entity") != entity["entity"]
+                        or properties.get("source_id") not in (
+                            comparison["source_a"], comparison["source_b"])
+                        or ("monde_original_observation" in properties and
+                            properties["monde_original_observation"] is not True)
+                        or properties.get("monde_geometry_role") == "ANALYTICAL_REPORTER_GAP_WITNESS"
+                        or any(key in properties for key in (
+                            "monde_bundle_change", "monde_bundle_count"))):
+                    raise BundleVerificationError(
+                        "invalid or conflicting original Point provenance")
+                if not isinstance(geometry, dict) or geometry.get("type") != "Point":
+                    raise BundleVerificationError("original Point geometry required")
+                position = geometry.get("coordinates")
+                if (not isinstance(position, list) or len(position) not in (2, 3)
+                        or any(type(x) not in (int, float) for x in position)):
+                    raise BundleVerificationError("invalid original Point coordinates")
+                from math import isfinite
+                if (not all(isfinite(x) for x in position)
+                        or not -180 <= position[0] <= 180
+                        or not -90 <= position[1] <= 90):
+                    raise BundleVerificationError("original Point outside WGS84")
+                features.append({
+                    **feature,
+                    "properties": {**properties, "monde_bundle_change": direction,
+                                   "monde_bundle_count": count},
+                })
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "monde_bundle_comparison": {
+            "source_a": comparison["source_a"],
+            "source_b": comparison["source_b"],
+            "axis": comparison["axis"],
+            "before_cutoffs": comparison["before_cutoffs"],
+            "after_cutoffs": comparison["after_cutoffs"],
+            "selection_or_cutoffs_differ": comparison["selection_or_cutoffs_differ"],
+            "original_points_added": comparison["original_points_added"],
+            "original_points_removed": comparison["original_points_removed"],
+            "authenticity": comparison["authenticity"],
+            "interpretation": comparison["interpretation"],
+        },
+    }
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
@@ -291,6 +356,8 @@ def main(argv=None):
                            help="Inspect every changed matrix row or original Point report")
     parser.add_argument("--by-source", action="store_true",
                         help="Summarize original Point evidence changes by reporter")
+    selectors.add_argument("--changes-geojson", action="store_true",
+                           help="GIS-ready original Point additions/removals between ZIPs")
     args = parser.parse_args(argv)
     if args.entity is not None and args.compare is None:
         parser.error("--entity requires --compare")
@@ -300,6 +367,10 @@ def main(argv=None):
         parser.error("--by-source requires --compare")
     if args.by_source and args.entity is not None:
         parser.error("--by-source cannot be combined with --entity")
+    if args.changes_geojson and args.compare is None:
+        parser.error("--changes-geojson requires --compare")
+    if args.changes_geojson and args.by_source:
+        parser.error("--changes-geojson cannot be combined with --by-source")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -309,10 +380,12 @@ def main(argv=None):
         else:
             if args.compare.stat().st_size > MAX_ARCHIVE:
                 raise BundleVerificationError("comparison archive exceeds safe size")
-            result = compare_bundles(original, args.compare.read_bytes(),
-                                     entity=args.entity,
-                                     inspect_changed=args.inspect_changed,
-                                     by_source=args.by_source)
+            other = args.compare.read_bytes()
+            result = (compare_points_geojson(original, other)
+                      if args.changes_geojson else
+                      compare_bundles(original, other, entity=args.entity,
+                                      inspect_changed=args.inspect_changed,
+                                      by_source=args.by_source))
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1
