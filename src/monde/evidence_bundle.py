@@ -3,6 +3,7 @@
 SHA-256 verifies consistency with the included manifest, NOT authenticity.
 """
 import argparse
+import csv
 from collections import Counter
 from hashlib import sha256
 import io
@@ -344,6 +345,58 @@ def compare_points_geojson(before: bytes, after: bytes) -> dict:
         },
     }
 
+
+def compare_points_csv(before: bytes, after: bytes) -> str:
+    """One CSV row per distinct original Point change, with provenance."""
+    changed = compare_points_geojson(before, after)
+    context = changed["monde_bundle_comparison"]
+    fields = (
+        "change", "count", "entity", "source_id", "assertion_id",
+        "evidence_id", "longitude", "latitude", "altitude",
+        "original_properties_json", "source_a", "source_b", "axis",
+        "before_cutoffs_json", "after_cutoffs_json", "authenticity",
+        "interpretation",
+    )
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(fields)
+
+    def safe(value):
+        if value is None:
+            return ""
+        if not isinstance(value, str):
+            raise BundleVerificationError("invalid original text field")
+        # Whitespace-prefixed formula text must remain text in spreadsheets.
+        if value.lstrip(" \t\r\n").startswith(("=", "+", "-", "@")):
+            return "'" + value
+        return value
+
+    for feature in changed["features"]:
+        properties = feature["properties"]
+        original = {key: value for key, value in properties.items()
+                    if key not in ("monde_bundle_change", "monde_bundle_count")}
+        coords = feature["geometry"]["coordinates"]
+        try:
+            original_json = json.dumps(original, ensure_ascii=False,
+                                       sort_keys=True, separators=(",", ":"),
+                                       allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise BundleVerificationError("invalid original Point properties") from exc
+        writer.writerow((
+            properties["monde_bundle_change"], properties["monde_bundle_count"],
+            safe(properties["entity"]), safe(properties["source_id"]),
+            safe(properties.get("assertion_id")),
+            safe(properties.get("evidence_id")),
+            coords[0], coords[1], coords[2] if len(coords) == 3 else "",
+            original_json, safe(context["source_a"]), safe(context["source_b"]),
+            safe(context["axis"]),
+            json.dumps(context["before_cutoffs"], sort_keys=True, separators=(",", ":")),
+            json.dumps(context["after_cutoffs"], sort_keys=True, separators=(",", ":")),
+            context["authenticity"], context["interpretation"],
+        ))
+    return output.getvalue()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="Downloaded original reporter ZIP")
@@ -358,6 +411,8 @@ def main(argv=None):
                         help="Summarize original Point evidence changes by reporter")
     selectors.add_argument("--changes-geojson", action="store_true",
                            help="GIS-ready original Point additions/removals between ZIPs")
+    selectors.add_argument("--changes-csv", action="store_true",
+                           help="Spreadsheet-ready original Point additions/removals between ZIPs")
     args = parser.parse_args(argv)
     if args.entity is not None and args.compare is None:
         parser.error("--entity requires --compare")
@@ -369,8 +424,12 @@ def main(argv=None):
         parser.error("--by-source cannot be combined with --entity")
     if args.changes_geojson and args.compare is None:
         parser.error("--changes-geojson requires --compare")
+    if args.changes_csv and args.compare is None:
+        parser.error("--changes-csv requires --compare")
     if args.changes_geojson and args.by_source:
         parser.error("--changes-geojson cannot be combined with --by-source")
+    if args.changes_csv and args.by_source:
+        parser.error("--changes-csv cannot be combined with --by-source")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -381,7 +440,9 @@ def main(argv=None):
             if args.compare.stat().st_size > MAX_ARCHIVE:
                 raise BundleVerificationError("comparison archive exceeds safe size")
             other = args.compare.read_bytes()
-            result = (compare_points_geojson(original, other)
+            result = (compare_points_csv(original, other)
+                      if args.changes_csv else
+                      compare_points_geojson(original, other)
                       if args.changes_geojson else
                       compare_bundles(original, other, entity=args.entity,
                                       inspect_changed=args.inspect_changed,
@@ -389,7 +450,10 @@ def main(argv=None):
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1
-    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    if args.changes_csv:
+        print(result, end="")
+    else:
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 
 
