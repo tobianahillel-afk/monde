@@ -1,0 +1,50 @@
+id: WORK-0145
+title: "Open verified original reporter ZIP evidence changes in offline GIS"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-20"
+updated_at: "2026-10-20"
+purpose: |
+  Convert original Point additions/removals between two verified source-pair
+  ZIP exports into GIS-ready GeoJSON with exact reporter/provenance attributes
+  and original-observation multiplicity. No inferred physical movement.
+scope:
+  in: ["Offline --changes-geojson CLI", "Original Point provenance and counts",
+       "Fail-closed geometry and conflicting annotations", "Real ZIP/CLI tests"]
+  out: ["Authenticity certification", "World-state inference", "Network services",
+        "Modifying downloaded archives", "Derived witness geometries"]
+acceptance_criteria:
+  - {id: AC-1, description: "One offline CLI command emits valid GIS-ready original Point difference GeoJSON.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Original source assertion and evidence fields survive intact with explicit ADDED/REMOVED counts.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verified ZIPs remain unchanged; malformed and unsupported Point features fail closed.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Existing JSON comparison modes remain compatible and GitHub Actions tests pass.", status: IN_PROGRESS}
+depends_on: [WORK-0144]
+requirements: []
+assumptions: ["Input ZIP is a local export of the existing verified MONDE reporter bundle schema."]
+risks: ["Original reports describe sources, not ground truth; export counts are not physical movements."]
+read_before: [AGENTS.md, src/monde/evidence_bundle.py, tests/test_world_evidence_bundle.py,
+              docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.evidence_bundle.verify_bundle, monde.evidence_bundle.compare_bundles]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add original Point delta GeoJSON using verified inspection output.", depends_on: [], expected_files: [src/monde/evidence_bundle.py], status: IN_PROGRESS}
+    - {id: T2, description: "Run real ZIP and CLI tests; document format and limits.", depends_on: [T1], expected_files: [tests/test_world_evidence_bundle.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_evidence_bundle.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+rollback:
+  strategy: "Close this stacked PR, leaving verified parent ZIP exports unchanged."
