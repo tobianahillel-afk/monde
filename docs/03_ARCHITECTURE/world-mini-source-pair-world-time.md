@@ -1232,3 +1232,17 @@ Both ZIPs are verified before comparing and remain untouched. Flags
 single-entity CLI/API outputs are unchanged. Differences may stem from
 selection filters or temporal cutoffs and do **not** attest to authenticity,
 world-state changes, physical movement or source reliability.
+
+### Summarize changes by original reporter (WORK-0144)
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --by-source
+```
+
+The `original_reporter_changes` JSON list counts original Point reports
+before/after and their exact added/removed multiplicities for each verified
+reporter, with sorted affected entity IDs. Use `--by-source --inspect-changed`
+to include each affected entity's full original evidence records. This does
+not include analytical witnesses or claim physical change, reporter truth,
+or independent authenticity (`NOT_ATTESTED`). Both archives must validate;
+unknown reporter or missing entity labels fail closed. ZIPs stay unchanged.

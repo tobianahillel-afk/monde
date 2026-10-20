@@ -106,7 +106,8 @@ def verify_bundle(data: bytes) -> dict:
 
 
 def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
-                    inspect_changed: bool = False) -> dict:
+                    inspect_changed: bool = False,
+                    by_source: bool = False) -> dict:
     """Compare two verified original-reporter exports, without asserting truth.
 
     Repeated source reports are counted separately. Different selections,
@@ -119,6 +120,8 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
         raise BundleVerificationError("invalid entity selector")
     if type(inspect_changed) is not bool or (inspect_changed and entity is not None):
         raise BundleVerificationError("inspect_changed cannot be combined with entity")
+    if type(by_source) is not bool or (by_source and entity is not None):
+        raise BundleVerificationError("by_source cannot be combined with entity")
     left = verify_bundle(before)
     right = verify_bundle(after)
     for key in ("schema", "source_a", "source_b", "axis"):
@@ -192,6 +195,46 @@ def compare_bundles(before: bytes, after: bytes, *, entity: str | None = None,
         "authenticity": "NOT_ATTESTED",
         "interpretation": "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE",
     }
+    if by_source:
+        reporters = {
+            source: {
+                "source_id": source,
+                "original_points_before_count": 0,
+                "original_points_after_count": 0,
+                "original_points_added_count": 0,
+                "original_points_removed_count": 0,
+                "changed_entity_ids": set(),
+            }
+            for source in (left["source_a"], left["source_b"])
+        }
+        # Count only exact original observations; never analytical witnesses.
+        for field, observations in (
+            ("original_points_before_count", left_points),
+            ("original_points_after_count", right_points),
+            ("original_points_added_count", right_points - left_points),
+            ("original_points_removed_count", left_points - right_points),
+        ):
+            for serialized, count in observations.items():
+                props = json.loads(serialized)["properties"]
+                source = props.get("source_id")
+                identifier = props.get("entity")
+                if not isinstance(source, str) or source not in reporters:
+                    raise BundleVerificationError(
+                        "original Point has reporter outside verified pair")
+                if (not isinstance(identifier, str) or not identifier
+                        or len(identifier) > 512
+                        or any(ord(char) < 32 for char in identifier)):
+                    raise BundleVerificationError(
+                        "original Point missing a valid entity for source summary")
+                reporters[source][field] += count
+                if field in ("original_points_added_count",
+                             "original_points_removed_count"):
+                    reporters[source]["changed_entity_ids"].add(identifier)
+        result["original_reporter_changes"] = [
+            {**record, "changed_entity_ids": sorted(record["changed_entity_ids"])}
+            for record in reporters.values()
+        ]
+
     def inspect_one(identifier, original_before, original_after):
         def changed_features(delta):
             return [{"feature": json.loads(raw), "count": count}
@@ -246,11 +289,17 @@ def main(argv=None):
                            help="Inspect one entity's original reports in both verified exports")
     selectors.add_argument("--inspect-changed", action="store_true",
                            help="Inspect every changed matrix row or original Point report")
+    parser.add_argument("--by-source", action="store_true",
+                        help="Summarize original Point evidence changes by reporter")
     args = parser.parse_args(argv)
     if args.entity is not None and args.compare is None:
         parser.error("--entity requires --compare")
     if args.inspect_changed and args.compare is None:
         parser.error("--inspect-changed requires --compare")
+    if args.by_source and args.compare is None:
+        parser.error("--by-source requires --compare")
+    if args.by_source and args.entity is not None:
+        parser.error("--by-source cannot be combined with --entity")
     try:
         if args.bundle.stat().st_size > MAX_ARCHIVE:
             raise BundleVerificationError("archive exceeds safe size")
@@ -262,7 +311,8 @@ def main(argv=None):
                 raise BundleVerificationError("comparison archive exceeds safe size")
             result = compare_bundles(original, args.compare.read_bytes(),
                                      entity=args.entity,
-                                     inspect_changed=args.inspect_changed)
+                                     inspect_changed=args.inspect_changed,
+                                     by_source=args.by_source)
     except (OSError, BundleVerificationError) as exc:
         print(json.dumps({"valid": False, "reason": str(exc)}, sort_keys=True))
         return 1

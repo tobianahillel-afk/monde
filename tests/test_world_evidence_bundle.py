@@ -432,5 +432,69 @@ class TestOfflineEntityInspection(unittest.TestCase):
                 self.assertEqual(invalid.returncode, 2)
 
 
+
+    def test_source_summary_counts_duplicates_without_analytical_witnesses(self):
+        old_a = self._report("A", "survey-a", "old-a")
+        old_b = self._report("B", "survey-b", "stable-b")
+        new_a = self._report("A", "survey-a", "new-a")
+        new_b = self._report("C", "survey-b", "new-b")
+        before = self._archive([], [old_a, old_a, old_b])
+        after = self._archive([], [old_a, new_a, old_b, new_b])
+        result = compare_bundles(before, after, by_source=True)
+        by_id = {x["source_id"]: x for x in result["original_reporter_changes"]}
+        self.assertEqual(list(by_id), ["survey-a", "survey-b"])
+        self.assertEqual(by_id["survey-a"], {
+            "source_id": "survey-a", "original_points_before_count": 2,
+            "original_points_after_count": 2, "original_points_added_count": 1,
+            "original_points_removed_count": 1, "changed_entity_ids": ["A"]})
+        self.assertEqual(by_id["survey-b"], {
+            "source_id": "survey-b", "original_points_before_count": 1,
+            "original_points_after_count": 2, "original_points_added_count": 1,
+            "original_points_removed_count": 0, "changed_entity_ids": ["C"]})
+        self.assertEqual(sum(v["original_points_added_count"] for v in by_id.values()),
+                         result["original_points_added"])
+        self.assertEqual(result["authenticity"], "NOT_ATTESTED")
+
+    def test_source_summary_fails_closed_on_unknown_reporter_or_entity(self):
+        original = self._report("A", "survey-a", "stable")
+        identical = self._archive([], [original])
+        self.assertEqual(
+            [r["changed_entity_ids"] for r in
+             compare_bundles(identical, identical, by_source=True)
+             ["original_reporter_changes"]], [[], []])
+        for invalid in (self._report("A", "unknown", "bad"),
+                        self._report("A", "survey-a", "no-entity")):
+            if invalid["properties"]["assertion_id"] == "no-entity":
+                invalid["properties"].pop("entity")
+            archive = self._archive([], [invalid])
+            with self.assertRaises(BundleVerificationError):
+                compare_bundles(archive, archive, by_source=True)
+
+    def test_source_summary_actual_cli_and_immutable_verified_zips(self):
+        old = self._archive([], [])
+        latest = self._archive([], [self._report("A", "survey-a", "new")])
+        with tempfile.TemporaryDirectory() as directory:
+            before = Path(directory) / "before.zip"
+            after = Path(directory) / "after.zip"
+            before.write_bytes(old)
+            after.write_bytes(latest)
+            command = [sys.executable, "-m", "monde.evidence_bundle",
+                       str(before), "--compare", str(after),
+                       "--by-source", "--inspect-changed"]
+            run = subprocess.run(command, text=True, capture_output=True, check=False)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            result = json.loads(run.stdout)
+            self.assertEqual(result["original_reporter_changes"][0]
+                             ["changed_entity_ids"], ["A"])
+            self.assertEqual(result["changed_entity_inspections"][0]["entity"], "A")
+            self.assertEqual(before.read_bytes(), old)
+            self.assertEqual(after.read_bytes(), latest)
+            for tail in (["--by-source"],
+                         ["--compare", str(after), "--entity", "A", "--by-source"]):
+                invalid = subprocess.run(
+                    [sys.executable, "-m", "monde.evidence_bundle",
+                     str(before), *tail], text=True, capture_output=True, check=False)
+                self.assertEqual(invalid.returncode, 2)
+
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,7 @@ acceptance_criteria:
   - {id: AC-1, description: "CLI exposes exact per-entity original evidence changes.", status: IN_PROGRESS}
   - {id: AC-2, description: "Both archives are verified before inspection and originals remain unchanged.", status: IN_PROGRESS}
   - {id: AC-3, description: "Absent entities and bad selectors fail closed; no duplicate observations lost.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Original Point counts, evidence deltas and affected entity IDs are grouped per verified reporter.", status: IN_PROGRESS}
 depends_on: [WORK-0143]
 requirements: []
 read_before: [AGENTS.md, src/monde/evidence_bundle.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
