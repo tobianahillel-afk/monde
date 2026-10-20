@@ -1274,3 +1274,35 @@ collisions with reserved output fields are refused. The new output switch
 requires `--compare` and cannot be mixed with `--entity`,
 `--inspect-changed`, or `--by-source`. Existing comparison JSON stays
 unchanged unless explicitly selecting this GIS format.
+
+
+## Portable original Point change CSV (WORK-0146)
+
+Use the already-verified reporter ZIP comparator to export **one row per
+distinct original Point addition/removal**, with unchanged source geometry,
+source/assertion/evidence provenance, original report multiplicity and both
+temporal cutoff objects:
+
+~~~bash
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip \
+  --compare after.zip --changes-csv > original-point-changes.csv
+~~~
+
+The header identifies change (ADDED/REMOVED), integer count, entity,
+source_id, assertion_id, evidence_id, WGS84 longitude/latitude, optional
+altitude, and the entire original source properties as JSON. It includes
+the selected reporter pair, comparison axis, earlier/later cutoff
+objects, authenticity = NOT_ATTESTED and interpretation =
+EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE.
+
+Source-provided labels beginning with spreadsheet formula operators,
+including after leading ASCII whitespace, are prefixed as **text in their
+standalone CSV cells**; original_properties_json remains byte-semantically
+faithful to the decoded original metadata. Python's built-in CSV quoting
+handles commas, newlines and quotes. A header-only output means no Point
+changes; matrix-only differences do not invent source Points.
+
+The operation does not modify either ZIP, infer physical movement,
+establish source authenticity, fetch remote data or add dependencies.
+Invalid archives, conflicting provenance and unsupported geometries fail
+closed. Existing JSON and GeoJSON comparison outputs remain compatible.
