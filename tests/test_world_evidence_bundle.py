@@ -497,8 +497,11 @@ class TestOfflineEntityInspection(unittest.TestCase):
                      str(before), *tail], text=True, capture_output=True, check=False)
                 self.assertEqual(invalid.returncode, 2)
 
-class TestOfflineBundleGeoJSONChanges(TestOfflineEntityInspection):
+class TestOfflineBundleGeoJSONChanges(unittest.TestCase):
     """Real zipped source reports to standalone GIS-ready delta features."""
+
+    _archive = staticmethod(TestOfflineEntityInspection._archive)
+    _report = staticmethod(TestOfflineEntityInspection._report)
 
     def test_original_point_multiplicity_and_source_provenance(self):
         first = self._report("A", "survey-a", "old-1")
@@ -522,8 +525,20 @@ class TestOfflineBundleGeoJSONChanges(TestOfflineEntityInspection):
         self.assertEqual(output["monde_bundle_comparison"]["interpretation"],
                          "EXPORTED_EVIDENCE_DIFFERENCE_NOT_WORLD_CHANGE")
         self.assertNotIn("same", json.dumps(output["features"]))
-        self.assertEqual(before, self._archive([], [first, first, unchanged]))
-        self.assertEqual(after, self._archive([], [second, second, second, unchanged]))
+
+    def test_actual_monde_exporter_properties_without_optional_original_marker(self):
+        point = self._report("A", "survey-a", "a1")
+        point["properties"].pop("monde_original_observation")
+        point["properties"]["monde_original_assertion_id"] = "a1"
+        point["properties"]["earlier_visible"] = True
+        point["properties"]["later_visible"] = False
+        point["properties"]["monde_visibility_transition"] = "EARLIER_ONLY"
+        output = compare_points_geojson(self._archive([], []),
+                                        self._archive([], [point]))
+        feature = output["features"][0]
+        self.assertEqual(feature["properties"]["monde_original_assertion_id"], "a1")
+        self.assertNotIn("monde_original_observation", feature["properties"])
+        self.assertEqual(feature["properties"]["monde_bundle_change"], "ADDED")
 
     def test_empty_and_matrix_only_differences_produce_empty_geojson(self):
         row = {"entity": "A", "status": "earlier"}

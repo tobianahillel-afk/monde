@@ -304,7 +304,9 @@ def compare_points_geojson(before: bytes, after: bytes) -> dict:
                         or properties.get("entity") != entity["entity"]
                         or properties.get("source_id") not in (
                             comparison["source_a"], comparison["source_b"])
-                        or properties.get("monde_original_observation") is not True
+                        or ("monde_original_observation" in properties and
+                            properties["monde_original_observation"] is not True)
+                        or properties.get("monde_geometry_role") == "ANALYTICAL_REPORTER_GAP_WITNESS"
                         or any(key in properties for key in (
                             "monde_bundle_change", "monde_bundle_count"))):
                     raise BundleVerificationError(
